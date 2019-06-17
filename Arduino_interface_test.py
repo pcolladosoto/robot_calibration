@@ -31,11 +31,12 @@ ERROR_SIGNAL_TREATMENT = 1
 PORT_NOT_REACHABLE = 2
 
 #Commands
-GET_DATA = 'F\n'
-TURN_L_WHEEL_STOPPED = 'C000371' #XXX is the distance in cm. Default is 2 * PI * 590 mm
-TURN_R_WHEEL_STOPPED = 'D000371' #XXX is the distance in cm. Default is 2 * PI * 590 mm
+GET_DATA = 'F'
+TURN_L_WHEEL_STOPPED = 'C0000371' #XXXX is the distance in cm. Default is 2 * PI * 590 mm
+TURN_R_WHEEL_STOPPED = 'D0000371' #XXXX is the distance in cm. Default is 2 * PI * 590 mm
 TURN_BOTH_WHEELS = '3360' #XXX is (I guess) the angle to turn in deg
-GO_STRAIGHT_3M = '41000' #XXXX is the distance in mm
+GO_STRAIGHT_3M = '43000' #XXXX is the distance in mm
+GO_STRAIGHT_1M = '41000' #Used for debugging!
 
 def find_N_open_serial_port():
     #Expand all the paths in the argument. [A-Za-z] matches any letter both upper and lower case. Its a RegExpr
@@ -49,7 +50,7 @@ def find_N_open_serial_port():
         print("Checking: %s\n" % (path), end="")
         try:
             #port = serial.Serial(path, ARDUINO_BAUDRATE, timeout = None)
-            port = serial.Serial(path, baudrate=38400, timeout = None)
+            port = serial.Serial(path, baudrate = 38400, timeout = None)
             if check_if_arduino():
                 print("Found Arduino at port %s\n" % (port.name), end="")
                 return port
@@ -72,7 +73,8 @@ def check_if_arduino():
 
 def get_data(port):
     dumped_data = open("dumped_data.txt", "w+")
-    port.write(GET_DISTANCES)
+    dumped_data.write("Test!\n")
+    port.write(GET_DATA.encode())
 
     while port.in_waiting > 0:
         dumped_data.write(port.readline())
@@ -97,8 +99,8 @@ def execute_command(command, port):
         print("Turning with the L wheel stopped!\n", end="")
         port.write(TURN_L_WHEEL_STOPPED.encode())
         while True:
-            if port.read() == '.':
-                print("Got the first dot!\n", end=" ")
+            if port.read().decode() == '.':
+                print("Got the first dot!\n", end="")
                 finished += 1
                 if finished == 2:
                     break
@@ -112,7 +114,7 @@ def execute_command(command, port):
                     break
     elif command == "Turn both wheels":
         print("Turning with both wheels!\n", end="")
-        port.write(TURN_BOTH_WHEELS)
+        port.write(TURN_BOTH_WHEELS.encode())
         while True:
             if port.read() == '.':
                 finished += 1
@@ -120,12 +122,15 @@ def execute_command(command, port):
                     break
     elif command == "Straight 3 m":
         print("Going straight for 3 m!\n", end="")
-        port.write('41000'.encode())
+        #port.write('41000'.encode())
+        #port.flush()
+        port.write(GO_STRAIGHT_1M.encode())
         while True:
-            char = port.read()
-            print("%s\n" % (char), end="")
+            char = port.read().decode()
+            print("%s" % (char), end="")
             sys.stdout.flush()
-            if char == '.':
+            if char == ".":
+                print("Hey!\n", end="")
                 finished += 1
                 if finished == 2:
                     break
@@ -168,16 +173,18 @@ def initial_data():
     user_input = input("Wheelbase: ")
     if user_input != '':
         WHEELBASE = float(user_input)
-        circumference = 2 * pi * WHEELBASE
+        circumference = 2 * pi * WHEELBASE / 10
 
-        if log10(circumference) >= 3: #4-digit number!
-            circumference= str(999)
+        if log10(circumference) >= 4: #5-digit number!
+            circumference = str(9999)
+        elif log10(circumference) > 3: #4-digit number!
+            circumference= str(int(circumference))
         elif log10(circumference) > 2: #3-digit number!
-            circumference = str(int(circumference)) #We have to round it. I prefer this instead of floor()
+            circumference = '0' + str(int(circumference)) #We have to round it. I prefer this instead of floor()
         elif log10(circumference) > 1: #2-digit number
-            circumference = '0' + str(int(circumference))
-        elif log10(circumference) > 0: #2-digit number
             circumference = '00' + str(int(circumference))
+        elif log10(circumference) > 0: #2-digit number
+            circumference = '000' + str(int(circumference))
 
         TURN_L_WHEEL_STOPPED = "C000" + circumference
         TURN_R_WHEEL_STOPPED = "D000" + circumference
@@ -190,18 +197,19 @@ def print_updated_data():
     cont = 'n'
 
     print("Arduino baudrate: %d\n" % (ARDUINO_BAUDRATE), end="")
-    print("Reducing factor: %f\n" % (REDUCING_FACTOR), end="")
+    print("Reducing factor: %g\n" % (REDUCING_FACTOR), end="")
     print("Eencoder pulses per rev: %d\n" % (ENC_PULSES_PER_REV), end="")
-    print("Nominal diameter: %f\n" % (NOM_DIAMETER), end="")
-    print("Wheelbase: %f\n" % (WHEELBASE), end="")
+    print("Nominal diameter: %g\n" % (NOM_DIAMETER), end="")
+    print("Wheelbase: %g\n" % (WHEELBASE), end="")
     print("Number of turns to perform: %d\n" % (N_TURNS), end="")
-    print("Diameter error (ED): %f\n" % (ED), end="")
-    print("Scaling error (ES): %f\n" % (ES), end="")
-    print("K factor: %f\n" % (ARDUINO_BAUDRATE), end="")
-    print("Pulses per rev: %f\n" % (PULSES_PER_REV), end="")
-    print("Mm to pulses conversion: %f\n" % (MM_TO_PULSES), end="")
-    print("Est. pulses per turn: %f\n" % (ESTIMATED_PULSES_PER_TURN), end="")
-    print("Real pulses per turn: %f\n" % (REAL_PULSES_PER_TURN), end="")
+    print("Diameter error (ED): %g\n" % (ED), end="")
+    print("Scaling error (ES): %g\n" % (ES), end="")
+    print("K factor: %g\n" % (K), end="")
+    print("Pulses per rev: %g\n" % (PULSES_PER_REV), end="")
+    print("Mm to pulses conversion: %g\n" % (MM_TO_PULSES), end="")
+    print("Est. pulses per turn: %g\n" % (ESTIMATED_PULSES_PER_TURN), end="")
+    print("Real pulses per turn: %g\n" % (REAL_PULSES_PER_TURN), end="")
+    print("Turn L stopped command: %s\n" % (TURN_L_WHEEL_STOPPED), end="")
 
     while cont != 'Y':
         cont = input("Proceed with these results? (Y/n)")
@@ -214,6 +222,7 @@ def main():
     initial_data()
     print_updated_data()
     arduino = find_N_open_serial_port()
+    #execute_command("Straight 3 m", arduino)
     execute_command("Turn L stopped", arduino)
     data_file = execute_command("Get data", arduino)
     print_file(data_file)
