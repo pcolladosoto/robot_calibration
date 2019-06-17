@@ -1,0 +1,176 @@
+#Imports
+import glob #For finding the serial terminal
+import serial #For working witht the serial ports
+import os #For system calls to ls and rm
+from numpy import convolve #For the convolution
+from re import findall #For parsing the input strings
+from math import pi #We need our friend PI
+
+#Constants
+ARDUINO_BAUDRATE = 38400
+REDUCING_FACTOR = 50.9 #The reducer makes axis speed = central_speed / 50.9.
+ENC_PULSES_PER_REV = 3 #The encoders emit 3 pulses per rev
+NOM_DIAMETER = 190 #In mm
+WHEELBASE = 590 #In mm
+N_TURNS = 8
+ED = 1
+ES = 1
+K = -1 #Computed later on
+PULSES_PER_REV = -1 #Computed later on
+MM_TO_PULSES = -1 #Computed later on
+ESTIMATED_PULSES_PER_TURN = -1 #Computed later on
+REAL_PULSES_PER_TURN = -1 #Computed later on
+
+#Errors
+ERROR_MESSAGES = ["PORT NOT FOUND, ABORTING!",
+                  "SIGNAL LENGTHS ARE DIFFERENT, ABORTING!"]
+PORT_NOT_FOUND = 0
+ERROR_SIGNAL_TREATMENT = 1
+
+#Commands
+GET_DATA = 'F\n'
+TURN_L_WHEEL_STOPPED = 'C000XXX\n' #XXX is the distance in cm
+TURN_R_WHEEL_STOPPED = 'D000XXX\n' #XXX is the distance in cm
+TURN_BOTH_WHEELS = '3XXX\n' #XXX is (I guess) the angle to turn in deg
+GO_STRAIGHT_3M = '43000\n' #XXXX is the distance in mm
+
+def find_N_open_serial_port():
+    #Expand all the paths in the argument. [A-Za-z] matches any letter both upper and lower case. Its a RegExpr
+    #glob.glob("/dev/tty[A-Za-z]*")
+    #Maybe this'll work too
+    candidates = glob.glob('/dev/tty[A-Za-z]*')
+
+    #open_ports = []
+    #Try to open each ttyUSBX port. If it's not being used, throw the exception and continue
+    for path in candidates:
+        try:
+            #port = serial.Serial(path, ARDUINO_BAUDRATE, timeout = None)
+            port = serial.Serial(path, timeout = None)
+            if check_if_arduino():
+                print("Found Arduino at port %s\n" % (port.name), end="")
+                port.close()
+                return port
+            else:
+                port.close()
+                #port.__del__() #It should't be needed though!
+            #open_ports.append(port)
+        except(OSError, serial.SerialException):
+            pass
+
+    #return open_ports
+    return PORT_NOT_FOUND
+
+def check_if_arduino():
+    #Kind of hacky... Write the output of the given folder to tmp and read from it to see if it's an Arduino. If ls returns a non-zero value we have an error!
+    if os.system("ls /dev/serial/by-id > tmp") != 0 or not ('Arduino' in open('tmp', 'r').read()):
+        os.system("rm tmp")
+        return False
+    os.system("rm tmp")
+    return True
+
+def get_data(port):
+    dumped_data = open("dumped_data.txt", "w+")
+    port.write(GET_DISTANCES)
+
+    while port.in_waiting > 0:
+        dumped_data.write(port.read())
+
+    dumped_data.seek(0)
+
+    return dumped_data
+
+def print_file(data):
+    for line in data:
+        print(line)
+
+    return
+
+def execute_command(command, port):
+    finished = 0
+
+    if command == "Get data":
+        print("Let's go get that data!\n", end="")
+        return get_data(port)
+    elif command == "Turn L stopped":
+        print("Turning with the L wheel stopped!\n", end="")
+        port.write(TURN_L_WHEEL_STOPPED)
+        while True:
+            if port.read() == '.':
+                print("Got the first dot!\n", end="")
+                finished += 1
+                if finished == 2:
+                    break
+    elif command == "Turn R stopped":
+        print("Turning with the R wheel stopped!\n", end="")
+        port.write(TURN_R_WHEEL_STOPPED)
+        while True:
+            if port.read() == '.':
+                finished += 1
+                if finished == 2:
+                    break
+    elif command == "Turn both wheels":
+        print("Turning with both wheels!\n", end="")
+        port.write(TURN_BOTH_WHEELS)
+        while True:
+            if port.read() == '.':
+                finished += 1
+                if finished == 2:
+                    break
+    elif command == "Straight 3 m":
+        print("Going straight for 3 m!\n", end="")
+        port.write(GO_STRAIGHT_3M)
+        while True:
+            if port.read() == '.':
+                finished += 1
+                if finished == 2:
+                    break
+    return
+
+def initial_data():
+    user_input = input("Diameter of the wheels in mm: ")
+    if user_input != '':
+        NOM_DIAMETER = float(user_input)
+
+    user_input = input("Reducing factor: ")
+    if user_input != '':
+        REDUCING_FACTOR = float(user_input)
+
+    user_input = input("Encoder pulses per revolution: ")
+    if user_input != '':
+        ENC_PULSES_PER_REV = float(user_input)
+
+    PULSES_PER_REV = REDUCING_FACTOR * ENC_PULSES_PER_REV
+    MM_TO_PULSES = (pi * NOM_DIAMETER) / PULSES_PER_REV
+
+    user_input = input("Wheelbase: ")
+    if user_input != '':
+        WHEELBASE = float(user_input)
+
+    ESTIMATED_PULSES_PER_TURN = (2 * pi * WHEELBASE) / (pi * NOM_DIAMETER) * PULSES_PER_REV
+
+    return
+
+def print_updated_data():
+    print("Arduino baudrate: %d\n" %(ARDUINO_BAUDRATE), end="")
+    print("Reducing factor: %f\n" %(REDUCING_FACTOR), end="")
+    print("Eencoder pulses per rev: %d\n" %(ENC_PULSES_PER_REV), end="")
+    print("Nominal diameter: %f\n" %(NOM_DIAMETER), end="")
+    print("Wheelbase: %f\n" %(WHEELBASE), end="")
+    print("Number of turns to perform: %d\n" %(N_TURNS), end="")
+    print("Diameter error (ED): %f\n" %(ED), end="")
+    print("Scaling error (ES): %f\n" %(ES), end="")
+    print("K factor: %f\n" %(ARDUINO_BAUDRATE), end="")
+    print("Pulses per rev: %f\n" %(PULSES_PER_REV), end="")
+    print("Mm to pulses conversion: %f\n" %(MM_TO_PULSES), end="")
+    print("Est. pulses per turn: %f\n" %(ESTIMATED_PULSES_PER_TURN), end="")
+    print("Real pulses per turn: %f\n" %(REAL_PULSES_PER_TURN), end="")
+
+    return
+
+def main():
+    initial_data()
+    print_updated_data()
+    find_N_open_serial_port()
+    execute_command("Turn L stopped")
+    data_file = execute_command("Get data")
+    print_file(data_file)
