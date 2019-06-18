@@ -36,7 +36,8 @@ GO_STRAIGHT_3M = '43000\n' #XXXX is the distance in mm
 
 def read_N_parse_data(dumped_data):
     for line in dumped_data:
-        extract_data(line)
+        if not "Counter" in line and not "END" in line:
+            extract_data(line)
     return
 
 def extract_data(string_to_parse, pulses_array, distances_array):
