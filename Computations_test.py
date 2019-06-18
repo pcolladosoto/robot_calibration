@@ -18,7 +18,7 @@ def print_array(array, msg):
     for x in array:
         print(x)
 
-    print("Length: " + len(array))
+    print("Length: " + str(len(array)))
 
     return
 
@@ -34,9 +34,22 @@ def populate_signal(pulses_array, distances_array):
             original_index += 1
             current_pulses = pulses_array[original_index]
             if current_distance > distances_array[original_index]:
-                current_distance = distances_array[original_index] + 256 #Note how 250 + 10 = 260, but 250 + 6 + 4 = 0 + 4 = 4 and 4 + 255 = 259!!
+                #Note how 250 + 10 = 260, but 250 + 6 + 4 = 0 + 4 = 4 and 4 + 255 = 259!!
+                current_distance = populated_array[index - 1] + distances_array[original_index] - distances_array[original_index - 1] + 256
             else:
-                current_distance = distances_array[original_index]
+                current_distance = populated_array[index - 1] + distances_array[original_index] - distances_array[original_index - 1]
+    index = 0
+    i = 0
+    n_jumps = 0
+    last_x = 0
+    for x in pulses_array:
+        if x < last_x:
+            n_jumps += 1
+        while index < x + n_jumps * 256:
+            populated_array.append(distances_array[i])
+            index += 1
+        last_x = x
+        i += 1
 
     return populated_array
 
