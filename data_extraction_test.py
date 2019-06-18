@@ -9,6 +9,7 @@ ard.write("F".encode())
 
 newline = ""
 
+#Documentation tells that Serial.println() in Arduino appends BOTH a '\r' and a '\n' to the string!
 while newline != "END\r\n":
     newline = (ard.readline()).decode()
     #print(newline, end = "")
