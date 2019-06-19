@@ -52,8 +52,11 @@ def convolution_time(original_signal, reversed_signal):
 
 def find_maximum(convolved_signal):
     length_convolved = len(convolved_signal)
-    lower_limit = int(length_convolved / 2 - length_convolved / (2 * N_TURNS) - ESTIMATED_PULSES_PER_TURN / 0.1)
-    upper_limit = int(length_convolved / 2 - length_convolved / (2 * N_TURNS) + ESTIMATED_PULSES_PER_TURN / 0.1)
+    lower_limit = int(length_convolved / 2 - length_convolved / (2 * N_TURNS) - ESTIMATED_PULSES_PER_TURN * 0.1)
+    upper_limit = int(length_convolved / 2 - length_convolved / (2 * N_TURNS) + ESTIMATED_PULSES_PER_TURN * 0.1)
+
+    print("Lower limit: %d\n" % (lower_limit), end="")
+    print("Upper limit: %d\n" % (upper_limit), end="")
 
     current_max = convolved_signal[lower_limit]
     current_max_index = lower_limit

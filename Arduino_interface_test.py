@@ -6,6 +6,8 @@ from numpy import convolve #For the convolution
 from re import findall #For parsing the input strings
 from math import pi, log10 #We need our friend PI and to check the digits of the circumference!
 import sys #To flush the print function when debugging!
+import time #Debuggig!
+
 
 #Constants
 ARDUINO_BAUDRATE = 38400
@@ -50,7 +52,7 @@ def find_N_open_serial_port():
         print("Checking: %s\n" % (path), end="")
         try:
             #port = serial.Serial(path, ARDUINO_BAUDRATE, timeout = None)
-            port = serial.Serial(path, baudrate = 38400, timeout = None)
+            port = serial.Serial(path, baudrate = ARDUINO_BAUDRATE, timeout = None)
             if check_if_arduino():
                 print("Found Arduino at port %s\n" % (port.name), end="")
                 port.close()
@@ -243,15 +245,29 @@ def print_updated_data():
 
 def main():
 
-    initial_data()
-    print_updated_data()
+    #initial_data()
+    #print_updated_data()
     arduino = find_N_open_serial_port()
     #execute_command("Straight 3 m", arduino)
 
-    execute_command("Turn L stopped", arduino)
+    #execute_command("Turn L stopped", arduino)
 
-    data_file = execute_command("Get data", arduino)
+    #data_file = execute_command("Get data", arduino)
 
-    print_file(data_file)
+    #print_file(data_file)
+
+    arduino.open()
+
+    time.sleep(1)
+
+    arduino.write("50500".encode())
+
+    time.sleep(1)
+
+    arduino.write("40500".encode())
+
+    #time.sleep(5)
+
+    arduino.close()
 
 main()
