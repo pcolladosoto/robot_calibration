@@ -53,6 +53,7 @@ def find_N_open_serial_port():
             port = serial.Serial(path, baudrate = 38400, timeout = None)
             if check_if_arduino():
                 print("Found Arduino at port %s\n" % (port.name), end="")
+                port.close()
                 return port
             else:
                 port.close()
@@ -71,7 +72,7 @@ def check_if_arduino():
     os.system("rm tmp")
     return True
 
-def get_data(port):
+def get_data(ard):
     #dumped_data = open("dumped_data.txt", "w+")
     #dumped_data.write("Test!\n")
     #port.write(GET_DATA.encode())
@@ -99,13 +100,18 @@ def get_data(port):
     return dumped_data
 
 def print_file(data):
+    data = open("data.txt", "r")
+
     for line in data:
         print(line, end = "")
+
+    data.close()
 
     return
 
 def execute_command(command, port):
     finished = 0
+    port.open()
 
     if command == "Get data":
         print("Let's go get that data!\n", end="")
@@ -118,6 +124,7 @@ def execute_command(command, port):
                 print("Got the first dot!\n", end="")
                 finished += 1
                 if finished == 2:
+                    port.close()
                     break
     elif command == "Turn R stopped":
         print("Turning with the R wheel stopped!\n", end="")
@@ -149,7 +156,8 @@ def execute_command(command, port):
                 finished += 1
                 if finished == 2:
                     break
-    return
+
+    return port.close()
 
 def initial_data():
 
@@ -188,21 +196,21 @@ def initial_data():
     user_input = input("Wheelbase: ")
     if user_input != '':
         WHEELBASE = float(user_input)
-        circumference = 2 * pi * WHEELBASE / 10
+    circumference = N_TURNS * 2 * pi * WHEELBASE / 10
 
-        if log10(circumference) >= 4: #5-digit number!
-            circumference = str(9999)
-        elif log10(circumference) > 3: #4-digit number!
-            circumference= str(int(circumference))
-        elif log10(circumference) > 2: #3-digit number!
-            circumference = '0' + str(int(circumference)) #We have to round it. I prefer this instead of floor()
-        elif log10(circumference) > 1: #2-digit number
-            circumference = '00' + str(int(circumference))
-        elif log10(circumference) > 0: #2-digit number
-            circumference = '000' + str(int(circumference))
+    if log10(circumference) >= 4: #5-digit number!
+        circumference = str(9999)
+    elif log10(circumference) > 3: #4-digit number!
+        circumference= str(int(circumference))
+    elif log10(circumference) > 2: #3-digit number!
+        circumference = '0' + str(int(circumference)) #We have to round it. I prefer this instead of floor()
+    elif log10(circumference) > 1: #2-digit number
+        circumference = '00' + str(int(circumference))
+    elif log10(circumference) > 0: #2-digit number
+        circumference = '000' + str(int(circumference))
 
-        TURN_L_WHEEL_STOPPED = "C000" + circumference
-        TURN_R_WHEEL_STOPPED = "D000" + circumference
+    TURN_L_WHEEL_STOPPED = "C000" + circumference
+    TURN_R_WHEEL_STOPPED = "D000" + circumference
 
     ESTIMATED_PULSES_PER_TURN = (2 * pi * WHEELBASE) / (pi * NOM_DIAMETER) * PULSES_PER_REV
 
@@ -211,6 +219,7 @@ def initial_data():
 def print_updated_data():
     cont = 'n'
 
+    print("Number of turns for the calibration: %d\n" % (N_TURNS), end="")
     print("Arduino baudrate: %d\n" % (ARDUINO_BAUDRATE), end="")
     print("Reducing factor: %g\n" % (REDUCING_FACTOR), end="")
     print("Eencoder pulses per rev: %d\n" % (ENC_PULSES_PER_REV), end="")
@@ -238,8 +247,11 @@ def main():
     print_updated_data()
     arduino = find_N_open_serial_port()
     #execute_command("Straight 3 m", arduino)
+
     execute_command("Turn L stopped", arduino)
+
     data_file = execute_command("Get data", arduino)
+
     print_file(data_file)
 
 main()
