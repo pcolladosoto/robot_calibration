@@ -59,7 +59,7 @@ Before digging into the logic behind the procedure itself we should begin by loo
 
 1. **ARDUINO_BAUDRATE:** The firmware running in the Arduino board will set up the serial port at a given rate. This data will be used when opening the port.
 
-2. **REDUCING_FACTOR:** The coupling between the motors and the wheels themselves doesn't necessarily have to be 1. This should be taking into account when estimating the initial value of the pulse -> mm conversion factor C<sub>m</sub>.
+2. **REDUCING_FACTOR:** The coupling between the motors and the wheels themselves doesn't necessarily have to be 1 (that is, one motor revolution is equivalent to one wheel revolution). This should be taken into account when estimating the initial value of the pulse -> mm conversion factor C<sub>m</sub>.
 
 3. **ENC_PULSES_PER_REV:** This value is encoder-specific. Our encoders generate 3 pulses per **MOTOR** revolution, for example.
 
@@ -87,7 +87,5 @@ The main aim of this module is opening the serial port for Arduino and getting t
 
 #### Function breakdown
 
->*1. initial_data()*: We need the estimated measures of the robot as a starting point for the calibration, namely the nominal diameter (the one the wheels are supposed to have) and the wheelbase. We have also included a handful of other input data in an attempt to make the program as general as possible. These include the number of pulses the motor's encoder emits per revolution and the reducing factor between the motor and the wheels if any. If the wheels are directly coupled with the motor inputting a 1 will do the trick.
-
-Whilst getting the data, the function updates a series of global variables containing the basic data of the robot. It will also generate the command we need to make the robot do a 360&deg; turn. All the commands, are explained in the [**Annex**](#Annex).
+1. *<u>initial_data()*</u>: We need the estimated measures of the robot as a starting point for the calibration, namely the nominal diameter (the one the wheels are supposed to have) and the wheelbase. We have also included a handful of other input data in an attempt to make the program as general as possible. These include the number of pulses the motor's encoder emits per revolution, the reducing factor between the motor and the wheels if any and Arduino's baud-rate. Whilst getting the data, the function updates a series of global variables containing the basic data of the robot and computes any needed secondary parameters. It will also generate the command we need to make the robot do a 360&deg; turn. All the commands, are explained in the [**Annex**](#Annex). We would like to draw attention to the part where we take the logarithm in base 10 of a number. We do so to find the number of digits in said number so that we can "craft" the command with the appropriate format.
 ## Annex <a name="Annex"></a>
