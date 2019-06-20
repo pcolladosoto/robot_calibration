@@ -54,3 +54,52 @@ Once we manage to send orders to the robot and then collect the data we need we 
 In each of the aforementioned sections we will break down every single function so that the make the overall process be as clear as we possibly can. Let's get to work, shall we?
 
 ### Interfacing section
+
+The main aim of this module is opening the serial port for Arduino and getting the initial data we need as input for the calibration. We will also send the different commands to trigger the needed movements of the robot. We will finally recover the data and store it in files to be processed later on.
+
+#### Function breakdown
+
+**1. initial_data()**: We need the estimated measures of the robot as a starting point for the calibration, namely the nominal diameter (the one the wheels are supposed to have) and the wheelbase. We have also included a handful of other input data in an attempt to make the program as general as possible. These include the number of pulses the motor's encoder emits per revolution and the reducing factor between the motor and the wheels if any. If the wheels are directly coupled with the motor inputting a 1 will do the trick.
+
+Whilst getting the data, the function updates a series of global variables containing the basic data of the robot. It will also generate the command we need to make the robot do a 360º turn. All the commands are explained in the [**Annex**](## Annex).
+.
+
+
+.
+
+
+.
+
+
+.
+
+
+.
+
+
+.
+
+
+.
+
+
+.
+
+
+.
+
+
+.
+
+
+.
+
+
+.
+
+
+.
+
+
+.
+## Annex
