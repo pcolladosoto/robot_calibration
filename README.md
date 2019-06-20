@@ -59,35 +59,53 @@ Before digging into the logic behind the procedure itself we should begin by loo
 
 #### Data Constants
 
-1. **ARDUINO_BAUDRATE:** The firmware running in the Arduino board will set up the serial port at a given rate. This data will be used when opening the port.
+1. `ARDUINO_BAUDRATE:` The firmware running in the Arduino board will set up the serial port at a given rate. This data will be used when opening the port. The firmware's default is 38400 bauds.
 
-2. **REDUCING_FACTOR:** The coupling between the motors and the wheels themselves doesn't necessarily have to be 1 (that is, one motor revolution is equivalent to one wheel revolution). This should be taken into account when estimating the initial value of the pulse -> mm conversion factor C<sub>m</sub>.
+2. `REDUCING_FACTOR:` The coupling between the motors and the wheels themselves doesn't necessarily have to be 1 (that is, one motor revolution is equivalent to one wheel revolution). This should be taken into account when estimating the initial value of the pulse -> mm conversion factor C<sub>m</sub>.
 
-3. **ENC_PULSES_PER_REV:** This value is encoder-specific. Our encoders generate 3 pulses per **MOTOR** revolution, for example.
+3. `ENC_PULSES_PER_REV:` This value is encoder-specific. Our encoders generate 3 pulses per **MOTOR** revolution, for example.
 
-4. **NOM_DIAMETER:** The nominal diameter is the one we expect our wheels to have when buying them. We will see that the "real" diameter has a small deviation with respect to this value.
+4. `NOM_DIAMETER:` The nominal diameter is the one we expect our wheels to have when buying them. We will see that the "real" diameter has a small deviation with respect to this value.
 
-5. **WHEELBASE:** We can take an approximate measurement of the wheelbase with some measuring tape. We measured from the center of one wheel to the center of the other one. This measurement should be close to the real wheelbase, but some deviation is tolerable. This is one of the things we want to calibrate after all!
+5. `WHEELBASE:` We can take an approximate measurement of the wheelbase with some measuring tape. We measured from the center of one wheel to the center of the other one. This measurement should be close to the real wheelbase, but some deviation is tolerable. This is one of the things we want to calibrate after all!
 
-6. **N_TURNS**: The number of turns we the robot will carry out when calibrating. The more turns it does, the more accurate the calibration will become but the longer the calibration will take. Please take into account that the firmware will only get 2000 measurements, so after these measurements are taken doing more turns will be completely pointless. We carried out our experiments with 8 turns.
+6. `N_TURNS`: The number of turns we the robot will carry out when calibrating. The more turns it does, the more accurate the calibration will become but the longer the calibration will take. Please take into account that the firmware will only get 2000 measurements, so after these measurements are taken doing more turns will be completely pointless. We carried out our experiments with 8 turns.
 
-7. **E<sub>D</sub>, E<sub>S</sub>, K:** These are constants needed for the calibration as explained above.
+7. `ED, ES, K:` These are constants needed for the calibration as explained above.
 
-8. **PULSES_PER_REV:** If our *REDUCING_FACTOR* is different than 1 the we will see how the pulses the encoder emits per revolution is **NOT** the same as the number of pulses emitted when the wheel experiences one revolution. In our case, the reducing factor is 50,9. This means that our wheel will experience an entire revolution when the motors have carried out 50,9 revolutions! Then, as our encoder emits 3 pulses per **MOTOR** revolution we would find that for a wheel rev (that's why we have computed this value) becomes 50,9 * 3 = 152,7 pulses / wheel<sub>REV</sub>.
+8. `PULSES_PER_REV:` If our *REDUCING_FACTOR* is different than 1 the we will see how the pulses the encoder emits per revolution is **NOT** the same as the number of pulses emitted when the wheel experiences one revolution. In our case, the reducing factor is 50,9. This means that our wheel will experience an entire revolution when the motors have carried out 50,9 revolutions! Then, as our encoder emits 3 pulses per **MOTOR** revolution we would find that for a wheel rev (that's why we have computed this value) becomes 50,9 * 3 = 152,7 pulses / wheel<sub>REV</sub>.
 
-9. **MM_TO_PULSES:** This is the mm -> pulses conversion factor we have talked about before (C<sub>m</sub>). It is obtained as the quotient between the circumference of the wheels and the number of pulses per wheel revolution, namely: MM_TO_PULSES = PI * NOM_DIAMETER / PULSES_PER_REV.
+9. `MM_TO_PULSES:` This is the mm -> pulses conversion factor we have talked about before (C<sub>m</sub>). It is obtained as the quotient between the circumference of the wheels and the number of pulses per wheel revolution, namely: MM_TO_PULSES = PI * NOM_DIAMETER / PULSES_PER_REV.
 
-10. **ESTIMATED_PULSES_PER_TURN:** When turning with one of the wheels stopped, the moving one will describe a circumference of length 2 &ast; PI &ast; WHEELBASE. Then, the wheel will have experienced (2 &ast; PI &ast; WHEELBASE) / (PI &ast; NOM_DIAMETER) revolutions. Knowing the PULSES_PER_REV of the wheel we can just find this parameter as: [(2 &ast; PI &ast; WHEELBASE) / (PI &ast; NOM_DIAMETER)] &ast; PULSES_PER_REV.
+10. `ESTIMATED_PULSES_PER_TURN:` When turning with one of the wheels stopped, the moving one will describe a circumference of length 2 &ast; PI &ast; WHEELBASE. Then, the wheel will have experienced (2 &ast; PI &ast; WHEELBASE) / (PI &ast; NOM_DIAMETER) revolutions. Knowing the PULSES_PER_REV of the wheel we can just find this parameter as: [(2 &ast; PI &ast; WHEELBASE) / (PI &ast; NOM_DIAMETER)] &ast; PULSES_PER_REV.
 
-11. **REAL_PULSES_PER_TURN:** This is the calibrated value we will obtain after computations.
+11. `REAL_PULSES_PER_TURN`: This is the calibrated value we will obtain after computations.
 
 #### Command Constants
 
 These constants contain the commands we will send to the MCU. The ones we find defined have been computed taking our platform's defaults into account.
 
-1. ****
+1. `GET_DATA = 'F'`
 
-12. **Add the remaining ones!**
+2. `TURN_L_WHEEL_STOPPED = 'C0000371'`
+
+3. `TURN_R_WHEEL_STOPPED = 'D0000371'`
+
+4. `TURN_BOTH_WHEELS = '2360'`
+
+5. `GO_STRAIGHT_3M = '43000'`
+
+6. `GO_STRAIGHT_1M = '41000'` (used for debugging)
+
+For a discussion on the syntax please refer to the [**Annex**](#Annex).
+
+#### Error Constants
+
+These constants have been defined so that we can have all the error messages in one place. We just use the constants to index an array containing the messages:
+
+1. `ERROR_MESSAGES`: It contains the different error message strings.
+
+2. `PORT_NOT_FOUND`, `ERROR_SIGNAL_TREATMENT`, `PORT_NOT_REACHABLE`: These are the error codes we find within the code.
 
 ### Interfacing section
 
