@@ -1,3 +1,7 @@
+#############################
+#rounding x -> int(x + 0.5)
+############################
+
 #Imports
 import glob #For finding the serial terminal
 import serial #For working witht the serial ports
