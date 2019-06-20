@@ -43,7 +43,7 @@ This factor is arguably the easiest one to adjust. Assuming our robot's deviatio
 
 ### Adjusting **b**
 
-When we make the robot turn while maintaining one of the wheels stopped we are roughly describing a circumference of length 2 * PI * b. This distance should be exactly the same as the number of pulses emitted by the moving wheel times the conversion factor we have computed previously (C<sub>m</sub>). In the literature you will see how we have a constant **K** appearing in the final expression. This is due to the introduction of a piece with a bearing whose aim is to facilitate the turning of the robot during the tests. How to take this factor into account is shown in the literature.
+When we make the robot turn while maintaining one of the wheels stopped we are roughly describing a circumference of length 2 &ast; PI &ast; b. This distance should be exactly the same as the number of pulses emitted by the moving wheel times the conversion factor we have computed previously (C<sub>m</sub>). In the literature you will see how we have a constant **K** appearing in the final expression. This is due to the introduction of a piece with a bearing whose aim is to facilitate the turning of the robot during the tests. How to take this factor into account is shown in the literature.
 
 ## High level view of the automation script
 
@@ -53,9 +53,11 @@ Once we manage to send orders to the robot and then collect the data we need we 
 
 In each of the aforementioned sections we will break down every single function so that the make the overall process be as clear as we possibly can. Let's get to work, shall we?
 
-### Constants and global Variables
+### Constants and Global Variables
 
 Before digging into the logic behind the procedure itself we should begin by looking at the series of global variables we have defined:
+
+#### Data Constants
 
 1. **ARDUINO_BAUDRATE:** The firmware running in the Arduino board will set up the serial port at a given rate. This data will be used when opening the port.
 
@@ -79,6 +81,12 @@ Before digging into the logic behind the procedure itself we should begin by loo
 
 11. **REAL_PULSES_PER_TURN:** This is the calibrated value we will obtain after computations.
 
+#### Command Constants
+
+These constants contain the commands we will send to the MCU. The ones we find defined have been computed taking our platform's defaults into account.
+
+1. ****
+
 12. **Add the remaining ones!**
 
 ### Interfacing section
@@ -95,11 +103,11 @@ The main aim of this module is opening the serial port for Arduino and getting t
 
 4. `check_if_arduino()`: This function is the one that invokes `ls` and checks for a given value in the output. It is only called from `find_N_open_serial_port()`.
 
-5. `execute_command()`: This function is just a wrapper that sends orders to the Arduino board. After sending the command, it will remain in an idle state until it reads two dots (`.`) from the serial port. This is due to the fact that the firmware starts sending dots when it has finished carrying out the requested action. These dots are our "stop condition" after all. Again, the commands are explained in the [**Annex**](#Annex).
+5. `execute_command([string object] command, [port object] port)`: This function is just a wrapper that sends orders to the Arduino board. After sending the command, it will remain in an idle state until it reads two dots (`.`) from the serial port. This is due to the fact that the firmware starts sending dots when it has finished carrying out the requested action. These dots are our "stop condition" after all. Again, the commands are explained in the [**Annex**](#Annex).
 
-6. `get_data()`: This functions triggers the output of data from the board and waits for the `END` string signaling that there is no more data to come. All this data will be stored on a text file for further processing. The file will be returned closed and with the R/W pointer at the beginning.
+6. `get_data([port object] port)`: This functions triggers the output of data from the board and waits for the `END` string signaling that there is no more data to come. All this data will be stored on a text file for further processing. The file will be returned closed and with the R/W pointer at the beginning.
 
-7. `print_file()`: This one is pretty self explanatory, as it just opens the file, prints it and closes it up. It has been used for debugging purposes.
+7. `print_file([file object] data)`: This one is pretty self explanatory, as it just opens the file, prints it and closes it up. It has been used for debugging purposes.
 
 ##### Small firmware tweaks
 
@@ -109,12 +117,52 @@ We not only need to send orders to the Arduino board, but we also need to update
 
 2. `update_param(char* number, char parameter)`: Once called, we will update a parameter depending on the input argument parameter, which is just a `char`. The new value is the `float` equivalent of the number string `number`.
 
+#### Computations section
 
+In this section we will see how we go from having RAW text input to sanitizing it and extracting a calibrated value for each of the needed parameters. As before, we have broken down the task into several functions:
 
+1. `read_N_parse([file object] data, [python list] p_array, [python_list] d_array)`: The input data to this section is contained in a file. The data we get from the Arduino contains the number of encoder pulses, a space, the distance measured by the sensors in centimeters, a space, and a semicolon followed by 3 dots. It looks something like: `XXXX YYYY ;...`, where `XXXX` and `YYYY` are the pulses and distances respectively. As the number of digits may vary we found it cumbersome to check each line byte by byte, so we took advantage of the power of RegExps. This function will read the input file data line by line whilst making sure "rubbish" lines are not taken into account. The data will be extracted by our next function, `extract_data()`, which we will call for every line in the document.
 
+2. `extract_data([python_list] string_to_parse, [python_list] p_array, [python_list] d_array)`: Using the function `findall()` from the `re` library we are able to extract the data we need and begin our process. The RegExp we are using matches ASCII digits (remember RegExps only work on text) so we need to convert them to integer values before appending them to their corresponding arrays. One might argue that we could condense these 2 first functions int one. Whilst that is absolutely true we believe this approach is more modular and improves overall code readability and clarity, something we prefer to prioritize.
 
+3. `print_array([python_list] array, [python_list] msg)`: This function is just a wrapper for printing arrays with a message. It has been used for debugging purposes.
 
+4. `populate_signal([python_list] pulses_array, [python_list] distances_array)`: Before understanding the way this function operates, we should take a closer look at the nature of the signals handed to us as input for this module.
+<br><br>
+First of all consider that in our case the encoders will emit 152,7 pulses per wheel revolution. Given that our tests were carried out by performing 8 turns and that a turn implies a fair number of wheel revolutions we are looking at a considerable quantity of pulses. Due to design constraints of the firmware, these pulses are tracked with an unsigned char whose values lies in the range [0, 255]. Let's face it, overflow is going to happen... This condition is checked by looking at the current and past number of pulses. As the number of pulses is monotonously increasing, we know that if a future index is larger than a past an overflow has taken place! In order to keep track of these overflows we have defined a variable `n_jumps`. We will add 256 to our current index for each overflow we have detected, so that the number of pulses we are using as index in our signal is in agreement with what it should be if we didn't have to cope with the char data type size constraints.
+<br><br>
+Due to firmware limitations we will see that we don't have a distance measurement for each encoder pulse. We will instead have measurements for certain pulse quantities, and no information for pulses in between said quantities. We chose to hold the last registered values for these "dark" intervals, so that's why we have a while loop within the for loop, we are just assuming the distance didn't change too much so that we can say it's roughly the same.
+<br><br>
+After finishing, this function returns the real distance signal we need to process to find our parameters. We are almost there!
 
+5. `signal_reversal([python_list] input_signal)`: This function returns a python type known as `None`. Calling the reverse method on the input list reverses said list in place, which is what we need for our next task. As arguments are passed by reference in python by default, this reversal will also have an effect on the signal in the `main()` function.
 
+6. `convolution_time([python_list] original_signal, [python_list] reversed_signal)`: This function returns the convolution of the inputs. As discussed in the linked article at the beginning of this document, the auto-correlation of a signal is equivalent to the convolution of the signal with itself but reversed. In math terms: X[n] &ast; X[-n] (j) = R(j), where R(j) is the autocorrelation of X[n] as a function of j and X[n] &ast; X[-n] (j) is the convolution of X[n] with itself reversed as a function of j too. Again, one could argue that functions **7** and **6** could have been joined into only one. We have taken this approach for the sake of readability.
+
+7. `find_maximum([python_list] convoluted_signal)`: This function is more a signal processing problem than a programming one. As seen in the linked article, the profile of the auto-correlation will show clearly identifiable peaks where an entire turn has been detected. As we are interested in the number of pulses for this to happen we will be looking for the index where we find a maximum value.
+<br><br>
+The catch here is that we won't be looking at the entire signal, but only at a portion of it between two limits we define: `lower_limit` and `upper_limit` in the code (no surprise!). As math assures us there will be a maximum between these we just have to look for this maximum and record the index where it takes place, which we do with a normal `for` loop. The function will return the value where we have this maximum, which directly depends on the index we found above.
 
 ## Annex <a name="Annex"></a>
+
+### Commands for interfacing with Arduino's Firmware
+
+The following commands are sent as plain-text through a serial port:
+
+1. `F`: This commands triggers the firmware to print information relative to the pulses and distances to the serial port. This is the information we will save into a file for later processing.
+
+2. `S[X...X[WMD]]`: This notation is quite tricky, but the idea is simple. This command **SETs** the calibrated values. `X...X` implies that we can have any number of digits (up to MAX_DIGS, defined in the firmware). `[WMD]` means that we can update any of these parameters in the order we want:
+
+  * `W`: Update the wheelbase.
+  * `M`: Update the MM -> pulses conversion factor.
+  * `D`: Update the wheel diameter deviation E<sub>d</sub>
+
+  And the overall square brackets means we can update one, two or the three parameters with only one command. We have tried to make it as flexible as possible!
+
+3. `C000XXXX`: This makes the robot turn whilst maintaining the left wheel stopped. `XXXX` is the distance in centimeters the moving wheel (i.e the right one) has to traverse.
+
+4. `D000XXXX`: This makes the robot turn whilst maintaining the right wheel stopped. `XXXX` is the distance in centimeters the moving wheel (i.e the left one) has to traverse.
+
+5. `2XXX`: Turn with both wheels at the same speed but in opposite directions. The center of this rotation is in the middle of the middle point separating the wheels instead of in the stopped wheel. `XXX` is the angle to turn in degrees.
+
+6. `4XXXX`: Go straight until the robot traverses `XXXX` millimeters.

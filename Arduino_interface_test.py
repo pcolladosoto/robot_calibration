@@ -74,7 +74,7 @@ def check_if_arduino():
     os.system("rm tmp")
     return True
 
-def get_data(ard):
+def get_data(port):
     #dumped_data = open("dumped_data.txt", "w+")
     #dumped_data.write("Test!\n")
     #port.write(GET_DATA.encode())
@@ -88,12 +88,12 @@ def get_data(ard):
 
     dumped_data = open("data.txt", "w+")
 
-    ard.write("F".encode())
+    port.write("F".encode())
 
     newline = ""
 
     while newline != "END\r\n":
-        newline = (ard.readline()).decode()
+        newline = (port.readline()).decode()
         dumped_data.write(newline)
 
     dumped_data.seek(0)

@@ -50,23 +50,23 @@ def convolution_time(original_signal, reversed_signal):
         return ERROR_SIGNAL_TREATMENT
     return convolve(original_signal, reversed_signal)
 
-def find_maximum(convolved_signal):
-    length_convolved = len(convolved_signal)
-    lower_limit = int(length_convolved / 2 - length_convolved / (2 * N_TURNS) - ESTIMATED_PULSES_PER_TURN * 0.1)
-    upper_limit = int(length_convolved / 2 - length_convolved / (2 * N_TURNS) + ESTIMATED_PULSES_PER_TURN * 0.1)
+def find_maximum(convoluted_signal):
+    length_convoluted = len(convoluted_signal)
+    lower_limit = int(length_convoluted / 2 - length_convoluted / (2 * N_TURNS) - ESTIMATED_PULSES_PER_TURN * 0.1)
+    upper_limit = int(length_convoluted / 2 - length_convoluted / (2 * N_TURNS) + ESTIMATED_PULSES_PER_TURN * 0.1)
 
     print("Lower limit: %d\n" % (lower_limit), end="")
     print("Upper limit: %d\n" % (upper_limit), end="")
 
-    current_max = convolved_signal[lower_limit]
+    current_max = convoluted_signal[lower_limit]
     current_max_index = lower_limit
 
     for index in range(lower_limit + 1, upper_limit):
-        if convolved_signal[index] > current_max:
-            current_max = convolved_signal[index]
+        if convoluted_signal[index] > current_max:
+            current_max = convoluted_signal[index]
             current_max_index = index
 
-    return length_convolved / 2 + 0.5 - current_max_index #It's equivalent to subtracting the index from the signal length!
+    return length_convoluted / 2 + 0.5 - current_max_index #It's equivalent to subtracting the index from the signal length!
 
 def main():
     p_array = []
@@ -86,11 +86,11 @@ def main():
 
     signal_reversal(full_array)
 
-    convolved_signal = convolution_time(non_inverted, full_array)
+    convoluted_signal = convolution_time(non_inverted, full_array)
 
-    print_array(convolved_signal, "Convolved signal: ")
+    print_array(convoluted_signal, "convoluted signal: ")
 
-    REAL_PULSES_PER_TURN = find_maximum(convolved_signal)
+    REAL_PULSES_PER_TURN = find_maximum(convoluted_signal)
 
     print("The MAX is at: %g" % (REAL_PULSES_PER_TURN))
 

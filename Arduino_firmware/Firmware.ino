@@ -8,6 +8,9 @@
 // Version
 #define VERSION "V1.00"
 
+//Max number of digits for updated data
+#define N_DIGS 5
+
 // Define to use L298 test board or the Padrino Tecnologico one
 //#define L298TEST
 
@@ -782,7 +785,7 @@ short int read_number(int numero)
 
 void parse_input(void) {
   //String incoming_params = String(Serial.readStringUntil('X'))
-  unsigned char incoming_byte = '\0', incoming_number[5] = {'\0'};
+  unsigned char incoming_byte = '\0', incoming_number[MAX_DIGS] = {'\0'};
   int i = 0;
   while (Serial.available() > 0) {
     incoming_byte = Serial.read();
@@ -792,7 +795,7 @@ void parse_input(void) {
       if (i > 0)
         update_param(incoming_number, incoming_byte);
       i = 0;
-      for (int k = 0; k < 5; k++)
+      for (int k = 0; k < MAX_DIGS; k++)
         incoming_number[k] = '\0';
     }
   }
