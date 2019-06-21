@@ -95,6 +95,16 @@ def get_data(port):
 
     return dumped_data
 
+def get_straight_data(port):
+
+    port.open()
+
+    matches = findall(r"\d+", port.readline())
+
+    port.close()
+
+    return matches[4]
+
 def print_file(data):
     data = open("data.txt", "r")
 
@@ -285,8 +295,6 @@ def user_tweaks(port, mode):
         print("You can also move the robot manually, but it's kind of heavy... ", end = "")
         print("Press ENTER when finished.", end = "")
 
-
-
         while ord != '':
             ord = input("Command: ")
             execute_command(ord.upper(), port)
@@ -339,10 +347,14 @@ def convolution_time(original_signal, reversed_signal):
         return ERROR_SIGNAL_TREATMENT
     return convolve(original_signal, reversed_signal)
 
-def find_maximum(convoluted_signal):
+def find_maximum(convoluted_signal, mode):
     length_convoluted = len(convoluted_signal)
-    lower_limit = int(length_convoluted / 2 - length_convoluted / (2 * N_TURNS) - ESTIMATED_PULSES_PER_TURN * 0.1)
-    upper_limit = int(length_convoluted / 2 - length_convoluted / (2 * N_TURNS) + ESTIMATED_PULSES_PER_TURN * 0.1)
+    if mode = "Stopped":
+        lower_limit = int(length_convoluted / 2 - length_convoluted / (2 * N_TURNS) - ESTIMATED_PULSES_PER_TURN * 0.1)
+        upper_limit = int(length_convoluted / 2 - length_convoluted / (2 * N_TURNS) + ESTIMATED_PULSES_PER_TURN * 0.1)
+    else:
+        lower_limit = int(length_convoluted / 2 - length_convoluted / (2 * N_TURNS) - (ESTIMATED_PULSES_PER_TURN / 2) * 0.1)
+        upper_limit = int(length_convoluted / 2 - length_convoluted / (2 * N_TURNS) + (ESTIMATED_PULSES_PER_TURN / 2) * 0.1)
 
     print("Lower limit: %d\n" % (lower_limit), end="")
     print("Upper limit: %d\n" % (upper_limit), end="")
@@ -377,7 +389,7 @@ def main():
         og_signal = baked_signal
         rev_signal = signal_reversal(baked_signal)
         convoluted_signal = convolution_time(og_signal, reversed_signal)
-        REAL_PULSES_PER_TURN_L = find_maximum(convoluted_signal)
+        REAL_PULSES_PER_TURN_L = find_maximum(convoluted_signal, "Stopped")
 
     user_tweaks(arduino, "continue?")
 
@@ -391,7 +403,7 @@ def main():
         og_signal = baked_signal
         rev_signal = signal_reversal(baked_signal)
         convoluted_signal = convolution_time(og_signal, reversed_signal)
-        REAL_PULSES_PER_TURN_R = find_maximum(convoluted_signal)
+        REAL_PULSES_PER_TURN_R = find_maximum(convoluted_signal, "Stopped")
 
     user_tweaks(arduino, "continue?")
 
@@ -405,7 +417,7 @@ def main():
         og_signal = baked_signal
         rev_signal = signal_reversal(baked_signal)
         convoluted_signal = convolution_time(og_signal, reversed_signal)
-        REAL_PULSES_PER_TURN_BOTH = find_maximum(convoluted_signal)
+        REAL_PULSES_PER_TURN_BOTH = find_maximum(convoluted_signal, "Both")
 
     K = 2 * REAL_PULSES_PER_TURN_BOTH / REAL_PULSES_PER_TURN_R
 
@@ -422,6 +434,12 @@ def main():
 
     execute_command("Straight 3m", arduino)
 
+    straight_pulses = get_straight_data(arduino)
+
+    real_distance = float(input("Please input the traversed distance: "))
+
+    MM_TO_PULSES = real_distance / straight_pulses
+
     WHEELBASE = REAL_PULSES_PER_TURN_R * MM_TO_PULSES * K / (2 * pi)
 
     print("Adjusted wheelbase: %g mm\n", % (WHEELBASE))
@@ -429,8 +447,6 @@ def main():
     execute_command("S" + str(WHEELBASE) + "w" + str(ED) + "D" + str(MM_TO_PULSES) + "M", arduino)
 
     print("Calibration finished!\n", end = "")
-
-    arduino.close()
 
     exit()
 

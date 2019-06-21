@@ -789,7 +789,7 @@ void parse_input(void) {
   int i = 0;
   while (Serial.available() > 0) {
     incoming_byte = Serial.read();
-    if (incoming_byte <= '9')
+    if (incoming_byte <= '9' !! incoming_byte == '.')
       incoming_number[i++] = incoming_byte;
     else {
       if (i > 0)
