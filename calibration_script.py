@@ -14,7 +14,7 @@ ARDUINO_BAUDRATE = 38400
 REDUCING_FACTOR = 50.9 #The reducer makes axis speed = central_speed / 50.9.
 ENC_PULSES_PER_REV = 3 #The encoders emit 3 pulses per rev
 NOM_DIAMETER = 190 #In mm
-WHEELBASE = 590 #In mm
+WHEELBASE = 535 #In mm
 N_TURNS = 8
 N_REPS = 3
 ED = 1
@@ -25,7 +25,7 @@ MM_TO_PULSES = -1 #Computed later on
 ESTIMATED_PULSES_PER_TURN = -1 #Computed later on
 REAL_PULSES_PER_TURN_L = -1 #Computed later on
 REAL_PULSES_PER_TURN_R = -1
-REAL_PULSES_PER_TURN_BOTH
+REAL_PULSES_PER_TURN_BOTH = -1
 
 #Errors
 ERROR_MESSAGES = ["PORT NOT FOUND, ABORTING!\n",
@@ -51,16 +51,14 @@ def find_N_open_serial_port():
     #Maybe this'll work too
     candidates = glob.glob('/dev/tty[A-Za-z]*')
 
-    #open_ports = []
     #Try to open each ttyUSBX port. If it's not being used, throw the exception and continue
     for path in candidates:
         print("Checking: %s\n" % (path), end="")
         try:
-            #port = serial.Serial(path, ARDUINO_BAUDRATE, timeout = None)
             port = serial.Serial(path, baudrate = ARDUINO_BAUDRATE, timeout = None)
             if check_if_arduino():
                 print("Found Arduino at port %s\n" % (port.name), end="")
-                port.close()
+                time.sleep(1)
                 return port
             else:
                 port.close()
@@ -80,28 +78,20 @@ def check_if_arduino():
     return True
 
 def get_data(port):
-
+    port.reset_input_buffer()
     dumped_data = open("data.txt", "w+")
-
     port.write("F".encode())
 
     newline = ""
-
     while newline != "END\r\n":
         newline = (port.readline()).decode()
         dumped_data.write(newline)
-
     dumped_data.seek(0)
 
     return dumped_data
 
 def get_straight_data(port):
-
-    port.open()
-
-    matches = findall(r"\d+", port.readline())
-
-    port.close()
+    matches = findall(r"\d+", port.readline().decode())
 
     return matches[4]
 
@@ -117,102 +107,53 @@ def print_file(data):
 
 def execute_command(command, port):
     finished = 0
-    port.open()
 
     if command == "Get data":
         print("Let's go get that data!\n", end="")
         return get_data(port)
+
     elif command == "Turn L stopped":
         print("Turning with the L wheel stopped!\n", end="")
         port.write(TURN_L_WHEEL_STOPPED.encode())
-        while True:
-            if port.read().decode() == '.':
-                print("Got the first dot!\n", end="")
-                finished += 1
-                if finished == 2:
-                    port.close()
-                    break
+        port.reset_input_buffer()
+
     elif command == "Turn R stopped":
         print("Turning with the R wheel stopped!\n", end="")
         port.write(TURN_R_WHEEL_STOPPED.encode())
-        while True:
-            if port.read() == '.':
-                finished += 1
-                if finished == 2:
-                    break
+        port.reset_input_buffer()
+
     elif command == "Turn both wheels":
         for i in range(N_TURNS):
             print("Turning with both wheels!\n", end="")
             port.write(TURN_BOTH_WHEELS.encode())
-            while True:
-                if port.read() == '.':
-                    finished += 1
-                    if finished == 2:
-                        break
+            port.reset_input_buffer()
+
     elif command == "Straight 3 m":
         print("Going straight for 3 m!\n", end="")
-        #port.write('41000'.encode())
-        #port.flush()
-        port.write(GO_STRAIGHT_1M.encode())
-        while True:
-            char = port.read().decode()
-            print("%s" % (char), end="")
-            sys.stdout.flush()
-            if char == ".":
-                print("Hey!\n", end="")
-                finished += 1
-                if finished == 2:
-                    break
+        port.write(GO_STRAIGHT_3M.encode())
+
     elif command == "A":
         port.write(TURN_L_LITTLE.encode())
-        while True:
-            char = port.read().decode()
-            print("%s" % (char), end="")
-            sys.stdout.flush()
-            if char == ".":
-                print("Hey!\n", end="")
-                finished += 1
-                if finished == 2:
-                    break
+
     elif command == "D":
         port.write(TURN_R_LITTLE.encode())
-        while True:
-            char = port.read().decode()
-            print("%s" % (char), end="")
-            sys.stdout.flush()
-            if char == ".":
-                print("Hey!\n", end="")
-                finished += 1
-                if finished == 2:
-                    break
+
     elif command[0] == "S":
         port.write(command.encode())
-        while True:
-            char = port.read().decode()
-            print("%s" % (char), end="")
-            sys.stdout.flush()
-            if char == ".":
-                print("Hey!\n", end="")
-                finished += 1
-                if finished == 2:
-                    break
 
-    return port.close()
+    while True:
+        char = port.read().decode()
+        #print("%s" % (char), end="")
+        #sys.stdout.flush()
+        if char == ".":
+            print("Hey!\n", end="")
+            finished += 1
+            if finished == 2:
+                return
 
 def initial_data():
 
-    global REDUCING_FACTOR
-    global ENC_PULSES_PER_REV
-    global NOM_DIAMETER
-    global WHEELBASE
-    global N_TURNS
-    global PULSES_PER_REV
-    global MM_TO_PULSES
-    global ESTIMATED_PULSES_PER_TURN
-
-
-    global TURN_R_WHEEL_STOPPED
-    global TURN_L_WHEEL_STOPPED
+    global REDUCING_FACTOR, ENC_PULSES_PER_REV, NOM_DIAMETER, WHEELBASE, N_TURNS, PULSES_PER_REV, MM_TO_PULSES, ESTIMATED_PULSES_PER_TURN, TURN_R_WHEEL_STOPPED, TURN_L_WHEEL_STOPPED
 
     user_input = input("Number of turns for the calibration: ")
     if user_input != '':
@@ -258,6 +199,8 @@ def initial_data():
 
     ESTIMATED_PULSES_PER_TURN = (2 * pi * WHEELBASE) / (pi * NOM_DIAMETER) * PULSES_PER_REV
 
+    execute_command("S" + str(WHEELBASE) + "W" + str(MM_TO_PULSES) + "M" + str(NOM_DIAMETER) + "D")
+
     return
 
 def print_updated_data():
@@ -289,7 +232,7 @@ def user_tweaks(port, mode):
 
     if mode == 'continue?':
         while ord != '':
-            ord = input("Press enter to continue\n", end = "")
+            ord = input("Press ENTER to continue\n", end = "")
     else:
         print("Use the A and D keys + ENTER to correct the orientation of the robot. ", end = "")
         print("You can also move the robot manually, but it's kind of heavy... ", end = "")
@@ -349,7 +292,7 @@ def convolution_time(original_signal, reversed_signal):
 
 def find_maximum(convoluted_signal, mode):
     length_convoluted = len(convoluted_signal)
-    if mode = "Stopped":
+    if mode == "Stopped":
         lower_limit = int(length_convoluted / 2 - length_convoluted / (2 * N_TURNS) - ESTIMATED_PULSES_PER_TURN * 0.1)
         upper_limit = int(length_convoluted / 2 - length_convoluted / (2 * N_TURNS) + ESTIMATED_PULSES_PER_TURN * 0.1)
     else:
@@ -375,6 +318,10 @@ def main():
     p_array = []
     d_array = []
 
+    L_PULSES = []
+    R_PULSES = []
+    B_PULSES = []
+
     print("Beginning calibration!")
 
     arduino = find_N_open_serial_port()
@@ -384,12 +331,13 @@ def main():
     for i in range(N_REPS):
         execute_command("Turn L stopped", arduino)
         data_file = execute_command("Get data", arduino)
-        read_N_parse = read_N_parse(data_file, p_array, d_array)
+        read_N_parse(data_file, p_array, d_array)
         baked_signal = populate_signal(p_array, d_array)
         og_signal = baked_signal
         rev_signal = signal_reversal(baked_signal)
         convoluted_signal = convolution_time(og_signal, reversed_signal)
-        REAL_PULSES_PER_TURN_L = find_maximum(convoluted_signal, "Stopped")
+        L_PULSES.append(find_maximum(convoluted_signal, "Stopped"))
+        print("Computed pulses: %g\n" % (L_PULSES[i]), end = "")
 
     user_tweaks(arduino, "continue?")
 
@@ -398,12 +346,13 @@ def main():
         d_array = []
         execute_command("Turn R stopped", arduino)
         data_file = execute_command("Get data", arduino)
-        read_N_parse = read_N_parse(data_file, p_array, d_array)
+        read_N_parse(data_file, p_array, d_array)
         baked_signal = populate_signal(p_array, d_array)
         og_signal = baked_signal
         rev_signal = signal_reversal(baked_signal)
         convoluted_signal = convolution_time(og_signal, reversed_signal)
-        REAL_PULSES_PER_TURN_R = find_maximum(convoluted_signal, "Stopped")
+        R_PULSES.append(find_maximum(convoluted_signal, "Stopped"))
+        print("Computed pulses: %g\n" % (R_PULSES[i]), end = "")
 
     user_tweaks(arduino, "continue?")
 
@@ -412,18 +361,20 @@ def main():
         d_array = []
         execute_command("Turn both wheels", arduino)
         data_file = execute_command("Get data", arduino)
-        read_N_parse = read_N_parse(data_file, p_array, d_array)
+        read_N_parse(data_file, p_array, d_array)
         baked_signal = populate_signal(p_array, d_array)
         og_signal = baked_signal
         rev_signal = signal_reversal(baked_signal)
-        convoluted_signal = convolution_time(og_signal, reversed_signal)
-        REAL_PULSES_PER_TURN_BOTH = find_maximum(convoluted_signal, "Both")
+        convoluted_signal = convolution_time(og_signal, rev_signal)
+        B_PULSES.append(find_maximum(convoluted_signal, "Both"))
+        print("Computed pulses: %g\n" % (B_PULSES[i]), end = "")
+
+    REAL_PULSES_PER_TURN_L = sum(L_PULSES) / len(L_PULSES)
+    REAL_PULSES_PER_TURN_R = sum(R_PULSES) / len(R_PULSES)
+    REAL_PULSES_PER_TURN_BOTH = sum(B_PULSES) / len(B_PULSES)
 
     K = 2 * REAL_PULSES_PER_TURN_BOTH / REAL_PULSES_PER_TURN_R
 
-    print("Left wheel stopped: %g pulses\n" % (REAL_PULSES_PER_TURN_L), end = "")
-    print("Right wheel stopped: %g pulses\n" % (REAL_PULSES_PER_TURN_R), end = "")
-    print("Both wheels moving: %g pulses\n" % (REAL_PULSES_PER_TURN_BOTH), end = "")
     print("K value: %d pulses\n" % (K), end = "")
 
     ED = REAL_PULSES_PER_TURN_R / REAL_PULSES_PER_TURN_L
@@ -434,7 +385,11 @@ def main():
 
     execute_command("Straight 3m", arduino)
 
+    arduino.reset_input_buffer()
+
     straight_pulses = get_straight_data(arduino)
+
+    print("Recorded pulses: %d\n" % (straight_pulses), end = "")
 
     real_distance = float(input("Please input the traversed distance: "))
 
@@ -442,7 +397,7 @@ def main():
 
     WHEELBASE = REAL_PULSES_PER_TURN_R * MM_TO_PULSES * K / (2 * pi)
 
-    print("Adjusted wheelbase: %g mm\n", % (WHEELBASE))
+    print("Adjusted wheelbase: %g mm\n" % (WHEELBASE))
 
     execute_command("S" + str(WHEELBASE) + "w" + str(ED) + "D" + str(MM_TO_PULSES) + "M", arduino)
 
