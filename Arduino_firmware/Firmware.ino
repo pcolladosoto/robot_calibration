@@ -1272,7 +1272,6 @@ void loop()
         Serial.print(mmperpulse);
         Serial.print(KKI);
         Serial.println(c_factor);
-        Serial.print()
         time1=millis();
       }
       // Just in case an error produce movement of the motors

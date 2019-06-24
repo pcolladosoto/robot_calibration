@@ -7,6 +7,7 @@ from re import findall #For parsing the input strings
 from math import pi, log10 #We need our friend PI and to check the digits of the circumference!
 import sys #To flush the print function when debugging!
 import time #Debuggig!
+from matplotlib import pyplot as plotter
 
 class terminal_colors:
     end_color = "\033[0m"
@@ -166,6 +167,13 @@ def initial_data(port):
 
     global REDUCING_FACTOR, ENC_PULSES_PER_REV, NOM_DIAMETER, WHEELBASE, N_TURNS, PULSES_PER_REV, MM_TO_PULSES, ESTIMATED_PULSES_PER_TURN, TURN_R_WHEEL_STOPPED, TURN_L_WHEEL_STOPPED, N_REPS
 
+    user_input = "X"
+
+    while user_input != "n":
+        user_input = input("Accept defaults?  (Y/n) -> ")
+        if user_input == "Y":
+            return execute_command("S" + str(WHEELBASE) + "W" + str(MM_TO_PULSES) + "M" + str(N_TURNS) + "R", port)
+
     user_input = input("Number of turns for the calibration: ")
     if user_input != '':
         N_TURNS = int(user_input)
@@ -234,7 +242,7 @@ def print_updated_data():
     print("Turn L stopped command: %s\n" % (TURN_L_WHEEL_STOPPED), end="")
 
     while cont != 'Y':
-        cont = input("Proceed with these results? (Y/n)")
+        cont = input("Proceed with these results? (Y/n) -> ")
         if cont == 'n':
             exit()
     return os.system("clear")
@@ -324,6 +332,13 @@ def find_maximum(convoluted_signal, mode):
 
     return length_convoluted / 2 + 0.5 - current_max_index #It's equivalent to subtracting the index from the signal length!
 
+def show_signal(input_signal):
+    plotter.plot(input_signal)
+    plotter.ylabel("Distance (cm * cm)")
+    plotter.show()
+
+    return
+
 def main():
     global REAL_PULSES_PER_TURN_R, REAL_PULSES_PER_TURN_L, REAL_PULSES_PER_TURN_BOTH, K, ED, ES, DR, MM_TO_PULSES, WHEELBASE
 
@@ -351,6 +366,7 @@ def main():
         og_signal = baked_signal
         signal_reversal(baked_signal)
         convoluted_signal = convolution_time(og_signal, baked_signal)
+        show_signal(convoluted_signal)
         L_PULSES.append(find_maximum(convoluted_signal, "Stopped"))
         print("Computed pulses: %g\n" % (L_PULSES[i]), end = "")
 
