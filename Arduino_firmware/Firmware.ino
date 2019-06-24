@@ -60,6 +60,9 @@ float X=0,Y=0,Theta=0;
 #else
   float KKI=1;               // deviation from theoretical left wheel diameter,rigth wheel as reference >1 wheel bigger than nominal
 
+  //Calibration correction factor for turning. It's an int to make debugging easier when printing!
+  int c_factor = 1;
+
   float WHEEL_DIST=535; //UAH 578; //UMB          //575;      // Wheel distance in mm
   float mmperpulse=3.93;      // mm per pulse in the encoders
   #define INERTIA_LIMIT  1   // Inertia limit to stop few pulses before the limit
@@ -784,18 +787,17 @@ short int read_number(int numero)
 //////////////////////////////////////////////////
 
 void parse_input(void) {
-  //String incoming_params = String(Serial.readStringUntil('X'))
-  unsigned char incoming_byte = '\0', incoming_number[MAX_DIGS] = {'\0'};
+  unsigned char incoming_byte = '\0', incoming_number[N_DIGS] = {'\0'};
   int i = 0;
   while (Serial.available() > 0) {
     incoming_byte = Serial.read();
-    if (incoming_byte <= '9' !! incoming_byte == '.')
+    if (incoming_byte <= '9' || incoming_byte == '.')
       incoming_number[i++] = incoming_byte;
     else {
       if (i > 0)
         update_param(incoming_number, incoming_byte);
       i = 0;
-      for (int k = 0; k < MAX_DIGS; k++)
+      for (int k = 0; k < N_DIGS; k++)
         incoming_number[k] = '\0';
     }
   }
@@ -824,6 +826,13 @@ void update_param(char* number, char parameter) {
       Serial.print("KKI");
       Serial.print(" with a value of: ");
       Serial.println(KKI);
+      break;
+    case 'R': //Adjust the number of turns during calibration
+      c_factor = atoi(number);
+      Serial.print("The parameter we are updating is: ");
+      Serial.print("Correction factor");
+      Serial.print(" with a value of: ");
+      Serial.println(c_factor);
       break;
     default:
       Serial.println("ERROR!");
@@ -984,7 +993,7 @@ void analizar_orden()
 //      Serial.println(num);
       if (num!=0 && num<361)
       {
-        PULSES_NUM=((float)num*3.1416*(float)WHEEL_DIST)/((float)360*(float)mmperpulse);
+        PULSES_NUM= c_factor * ((float)num*3.1416*(float)WHEEL_DIST)/((float)360*(float)mmperpulse);
 //        Serial.print("PULSES: ");
 //        Serial.print(PULSES_NUM);
         if (orden[0]=='2')
@@ -1259,6 +1268,11 @@ void loop()
       if((millis()-time1)>5000)
       {
         Serial.print(".");
+        Serial.print(WHEEL_DIST);
+        Serial.print(mmperpulse);
+        Serial.print(KKI);
+        Serial.println(c_factor);
+        Serial.print()
         time1=millis();
       }
       // Just in case an error produce movement of the motors
