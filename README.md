@@ -35,7 +35,9 @@ We only have to adjust 3 elements, that's great! But... How should we do it?
 
 ### Adjusting **E<sub>d</sub>**
 
-As shown in the reference article, we can relate the relation of both wheels' diameter to the number of pulses we record when doing a full turn when one of them is stopped. We find these pulses indirectly thanks to a few ultrasound **HC-SRO4**. As we are turning around these distances will be somewhat periodic, so after taking the auto-correlation of these distances we can find the number of emitted pulses by looking for a maximum! We can then show how the ratio of these pulses is equivalent to the ratio of both diameters, which happens to be, you guessed it, E<sub>d</sub>.
+As shown in the reference article, we can relate the relation of both wheels' diameter to the number of pulses we record when doing a full turn when one of them is stopped. We find these pulses indirectly thanks to a few ultrasound **HC-SRO4**. As we are turning around these distances will be somewhat periodic, so after taking their auto-correlation we can find the number of emitted pulses by looking for a maximum. We can then show how the ratio of these pulses is equivalent to the ratio of both diameters, which happens to be, you guessed it, E<sub>d</sub>.
+
+We would like to shed some light on why this maximum coincides with the number of pulses it takes our robot to complete one turn. The auto-correlation of a function is the convolution with itself inverted, as we will see later on. In order to visualize this reasoning picture a discrete, periodic signal whose period is `[1, 1, 2]`. As we take the convolution we will observe how less and less samples overlap and therefore add to the overall expression. The catch here is that adding less samples is **NOT** equivalent to having a smaller overall result! An example of this would be that `1·1 + 1·1 + 2·1 < 1·1 + 2·2`. Notice how in the second case we have less "overlapping" but the overall result is larger! Nevertheless, the overall tendency of this auto-correlation is to diminish as we will see in some of the attached figures below. In some way, when we are moving `N·PERIOD` samples we are "multiplying the big numbers by the big numbers" so that they have more "weight" and the "small numbers by the small numbers", so that the "big numbers" are adding all they can to the overall contribution. It helps to think of the static signal as the "weights" of the moving samples.
 
 ### Adjusting **C<sub>m</sub>**
 
@@ -184,3 +186,7 @@ The following commands are sent as plain-text through a serial port:
 5. `2XXX`: Turn with both wheels at the same speed but in opposite directions. The center of this rotation is in the middle of the middle point separating the wheels instead of in the stopped wheel. `XXX` is the angle to turn in degrees.
 
 6. `4XXXX`: Go straight until the robot traverses `XXXX` millimeters.
+
+### Figures
+
+We are attaching some figures displaying the plots of both the incoming distance signals as well as their auto-correlation.
