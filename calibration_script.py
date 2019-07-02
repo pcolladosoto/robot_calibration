@@ -23,18 +23,18 @@ REDUCING_FACTOR = 50.9 #The reducer makes axis speed = central_speed / 50.9.
 ENC_PULSES_PER_REV = 3 #The encoders emit 3 pulses per rev
 NOM_DIAMETER = 190 #In mm
 WHEELBASE = 535 #In mm
-N_TURNS = 8
-N_REPS = 3
+N_TURNS = 5
+N_REPS = 1
 ED = 1
 ES = 1
 DR = -1
 K = -1 #Computed later on
-PULSES_PER_REV = -1 #Computed later on
-MM_TO_PULSES = -1 #Computed later on
-ESTIMATED_PULSES_PER_TURN = -1 #Computed later on
+PULSES_PER_REV = REDUCING_FACTOR * ENC_PULSES_PER_REV
+MM_TO_PULSES = (pi * NOM_DIAMETER) / PULSES_PER_REV
+ESTIMATED_PULSES_PER_TURN = (2 * pi * WHEELBASE) / (pi * NOM_DIAMETER) * PULSES_PER_REV
 REAL_PULSES_PER_TURN_L = -1 #Computed later on
-REAL_PULSES_PER_TURN_R = -1
-REAL_PULSES_PER_TURN_BOTH = -1
+REAL_PULSES_PER_TURN_R = -1 #Computed later on
+REAL_PULSES_PER_TURN_BOTH = -1 #Computed later on
 
 #Errors
 ERROR_MESSAGES = ["PORT NOT FOUND, ABORTING!\n",
@@ -46,10 +46,10 @@ PORT_NOT_REACHABLE = 2
 
 #Commands
 GET_DATA = 'F'
-TURN_L_WHEEL_STOPPED = 'C0000371' #XXXX is the distance in cm. Default is 2 * PI * 590 mm
-TURN_R_WHEEL_STOPPED = 'D0000371' #XXXX is the distance in cm. Default is 2 * PI * 590 mm
+TURN_L_WHEEL_STOPPED = 'C0002689' #XXXX is the distance in cm. Default is 8 * 2 * PI * 53,5
+TURN_R_WHEEL_STOPPED = 'D0002689' #XXXX is the distance in cm. Default is 8 * 2 * PI * 53,5
 TURN_BOTH_WHEELS = '3360' #XXX is (I guess) the angle to turn in deg
-GO_STRAIGHT_3M = '43000' #XXXX is the distance in mm
+GO_STRAIGHT_3M = '63000220' #Go forward 3 meters at a speed of 220. Speed is within [0, 255] (PWM Duty Cycle)
 GO_STRAIGHT_1M = '41000' #Used for debugging!
 TURN_L_LITTLE = '2020'
 TURN_R_LITTLE = '3020'
@@ -118,6 +118,9 @@ def execute_command(command, port):
     finished = 0
     str_pulses = 0
 
+    if input("Input S to skip this test: ") == 'S':
+        return int(str_pulses)
+
     if command == "Get data":
         print("Let's go get that data!\n", end="")
         return get_data(port)
@@ -133,10 +136,9 @@ def execute_command(command, port):
         port.reset_input_buffer()
 
     elif command == "Turn both wheels":
-        for i in range(N_TURNS):
-            print("Turning with both wheels!\n", end="")
-            port.write(TURN_BOTH_WHEELS.encode())
-            port.reset_input_buffer()
+        print("Turning with both wheels!\n", end="")
+        port.write(TURN_BOTH_WHEELS.encode())
+        port.reset_input_buffer()
 
     elif command == "Straight 3 m":
         print("Going straight for 3 m!\n", end="")
@@ -227,19 +229,18 @@ def print_updated_data():
 
     print("Number of turns for the calibration: %d\n" % (N_TURNS), end="")
     print("Number of repetitions for the calibration: %d\n" % (N_REPS), end = "")
-    print("Arduino baudrate: %d\n" % (ARDUINO_BAUDRATE), end="")
-    print("Reducing factor: %g\n" % (REDUCING_FACTOR), end="")
-    print("Encoder pulses per rev: %d\n" % (ENC_PULSES_PER_REV), end="")
+    #print("Arduino baudrate: %d\n" % (ARDUINO_BAUDRATE), end="")
+    #print("Reducing factor: %g\n" % (REDUCING_FACTOR), end="")
+    #print("Encoder pulses per rev: %d\n" % (ENC_PULSES_PER_REV), end="")
     print("Nominal diameter: %g\n" % (NOM_DIAMETER), end="")
     print("Wheelbase: %g\n" % (WHEELBASE), end="")
-    print("Number of turns to perform: %d\n" % (N_TURNS), end="")
-    print("Diameter error (ED): %g\n" % (ED), end="")
-    print("Scaling error (ES): %g\n" % (ES), end="")
-    print("K factor: %g\n" % (K), end="")
-    print("Pulses per rev: %g\n" % (PULSES_PER_REV), end="")
+    #print("Diameter error (ED): %g\n" % (ED), end="")
+    #print("Scaling error (ES): %g\n" % (ES), end="")
+    #print("K factor: %g\n" % (K), end="")
+    #print("Pulses per rev: %g\n" % (PULSES_PER_REV), end="")
     print("Mm to pulses conversion: %g\n" % (MM_TO_PULSES), end="")
     print("Est. pulses per turn: %g\n" % (ESTIMATED_PULSES_PER_TURN), end="")
-    print("Turn L stopped command: %s\n" % (TURN_L_WHEEL_STOPPED), end="")
+    #print("Turn L stopped command: %s\n" % (TURN_L_WHEEL_STOPPED), end="")
 
     while cont != 'Y':
         cont = input("Proceed with these results? (Y/n) -> ")
@@ -286,6 +287,7 @@ def print_array(array, msg):
     return
 
 def populate_signal(pulses_array, distances_array):
+    show_signal(distances_array)
     populated_array = []
     index = 0
     i = 0
@@ -295,7 +297,8 @@ def populate_signal(pulses_array, distances_array):
         if x < last_x:
             n_jumps += 1
         while index < x + n_jumps * 256:
-            populated_array.append(distances_array[i])
+            if distances_array[i] < 100: #Cut unwanted noise!
+                populated_array.append(distances_array[i])
             index += 1
         last_x = x
         i += 1
@@ -313,6 +316,7 @@ def convolution_time(original_signal, reversed_signal):
 def find_maximum(convoluted_signal, mode):
     length_convoluted = len(convoluted_signal)
     if mode == "Stopped":
+        print("Stopped mode")
         lower_limit = int(length_convoluted / 2 - length_convoluted / (2 * N_TURNS) - ESTIMATED_PULSES_PER_TURN * 0.1)
         upper_limit = int(length_convoluted / 2 - length_convoluted / (2 * N_TURNS) + ESTIMATED_PULSES_PER_TURN * 0.1)
     else:
@@ -321,6 +325,7 @@ def find_maximum(convoluted_signal, mode):
 
     print("Lower limit: %d\n" % (lower_limit), end="")
     print("Upper limit: %d\n" % (upper_limit), end="")
+    print("Absolute MAX at: %d\n" % (length_convoluted / 2), end = "")
 
     current_max = convoluted_signal[lower_limit]
     current_max_index = lower_limit
@@ -329,6 +334,8 @@ def find_maximum(convoluted_signal, mode):
         if convoluted_signal[index] > current_max:
             current_max = convoluted_signal[index]
             current_max_index = index
+
+    print("Max at: %d\n" % (current_max_index), end = "")
 
     return length_convoluted / 2 + 0.5 - current_max_index #It's equivalent to subtracting the index from the signal length!
 
@@ -363,8 +370,10 @@ def main():
         data_file = execute_command("Get data", arduino)
         read_N_parse(data_file, p_array, d_array)
         baked_signal = populate_signal(p_array, d_array)
-        og_signal = baked_signal
-        signal_reversal(baked_signal)
+        show_signal(baked_signal)
+        og_signal = baked_signal.copy()
+        baked_signal.reverse()
+        show_signal(baked_signal)
         convoluted_signal = convolution_time(og_signal, baked_signal)
         show_signal(convoluted_signal)
         L_PULSES.append(find_maximum(convoluted_signal, "Stopped"))
@@ -379,9 +388,12 @@ def main():
         data_file = execute_command("Get data", arduino)
         read_N_parse(data_file, p_array, d_array)
         baked_signal = populate_signal(p_array, d_array)
-        og_signal = baked_signal
-        signal_reversal(baked_signal)
+        show_signal(baked_signal)
+        og_signal = baked_signal.copy()
+        baked_signal.reverse()
+        show_signal(baked_signal)
         convoluted_signal = convolution_time(og_signal, baked_signal)
+        show_signal(convoluted_signal)
         R_PULSES.append(find_maximum(convoluted_signal, "Stopped"))
         print("Computed pulses: %g\n" % (R_PULSES[i]), end = "")
 
@@ -394,9 +406,12 @@ def main():
         data_file = execute_command("Get data", arduino)
         read_N_parse(data_file, p_array, d_array)
         baked_signal = populate_signal(p_array, d_array)
-        og_signal = baked_signal
-        signal_reversal(baked_signal)
+        show_signal(baked_signal)
+        og_signal = baked_signal.copy()
+        baked_signal.reverse()
+        show_signal(baked_signal)
         convoluted_signal = convolution_time(og_signal, baked_signal)
+        show_signal(convoluted_signal)
         B_PULSES.append(find_maximum(convoluted_signal, "Both"))
         print("Computed pulses: %g\n" % (B_PULSES[i]), end = "")
 

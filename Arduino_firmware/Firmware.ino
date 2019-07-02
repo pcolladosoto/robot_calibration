@@ -18,10 +18,10 @@
 //#define ROBOT_LOLA
 #define ROBOT_SRE
 
-//////////////////////////////////////////////////////////////////////
-// ERROR VARIABLE
-// IDENTIFICATION ERRORS CODES
-//////////////////////////////////////////////////////////////////////
+//////////////////////////////////
+//      ERROR VARIABLE          //
+// IDENTIFICATION ERRORS CODES  //
+//////////////////////////////////
 unsigned char CODE_ERROR=0;
 #define NO_ERROR              0
 #define NO_NUMBER             1 // Waiting for a number, time-out
@@ -43,36 +43,38 @@ float X=0,Y=0,Theta=0;
 
 // Calibration constant
 #ifdef ROBOT_LOLA
-  float KKI=1;               // deviation from theoretical left wheel diameter,rigth wheel as reference >1 wheel bigger than nominal
+  float KKI=1;                  // deviation from theoretical left wheel diameter,rigth wheel as reference >1 wheel bigger than nominal
 
-  int   WHEEL_DIST=190;      // Wheel distance in mm
-  float mmperpulse=0.2094;   // mm per pulse in the encoders
-  #define INERTIA_LIMIT  40  // Inertia limit to stop few pulses before the limit
-  #define TIME_PID       200 // Time in miliseconds for each iteration of the PID
-  #define BREAK_PULSES   150 // Number of pulses from the end to start breaking
-  #define IGNORE_PULSE   11000 // time in micros to ignore encoder pulses if faster
+  int   WHEEL_DIST=190;         // Wheel distance in mm
+  float mmperpulse=0.2094;      // mm per pulse in the encoders
+  #define INERTIA_LIMIT  40     // Inertia limit to stop few pulses before the limit
+  #define TIME_PID       200    // Time in miliseconds for each iteration of the PID
+  #define BREAK_PULSES   150    // Number of pulses from the end to start breaking
+  #define IGNORE_PULSE   11000  // time in micros to ignore encoder pulses if faster
 
-  // PID (pd) constants
-//  float kp = 0.1;
-//  float kd = 0.4;
+  // PID (PD) constants
+  //float kp = 0.1;
+  //float kd = 0.4;
   float kp =0.5; // 0.23*2;
   float kd =2; // 10.0*2;
 #else
-  float KKI=1;               // deviation from theoretical left wheel diameter,rigth wheel as reference >1 wheel bigger than nominal
+  float KKI=1;               // Deviation from theoretical left wheel diameter; the rigth wheel is the reference; >1 wheel bigger than the nominal one
 
-  //Calibration correction factor for turning. It's an int to make debugging easier when printing!
+  //Calibration correction factor for turning
   int c_factor = 1;
 
-  float WHEEL_DIST=535; //UAH 578; //UMB          //575;      // Wheel distance in mm
-  float mmperpulse=3.93;      // mm per pulse in the encoders
-  #define INERTIA_LIMIT  1   // Inertia limit to stop few pulses before the limit
-  #define TIME_PID        500 // Time in miliseconds for each iteration of the PID
-  #define BREAK_PULSES   1  // Number of pulses from the end to start breaking
-  #define IGNORE_PULSE   11000 // time in micros to ignore encoder pulses if faster
+  //Current_pulses and last_pulses for PID calibration
+  float WHEEL_DIST=535;           //UAH 578; //UMB          //575;      // Wheel distance in mm
+  float mmperpulse=1.68;          // mm per pulse in the encoders
+  #define INERTIA_LIMIT  1        // Inertia limit to stop few pulses before the limit
+  #define TIME_PID        500     // Time in miliseconds for each iteration of the PID
+  #define BREAK_PULSES   1        // Number of pulses from the end to start breaking
+  #define IGNORE_PULSE   11000    // time in micros to ignore encoder pulses if faster
+  #define PID_PULSES 10
 
-  // PID (pd) constants
-//  float kp =  0.5;
-//  float kd = 20.0; //kd = 20.0
+  // PID (PD) constants
+  //float kp =  0.5;
+  //float kd = 20.0; //kd = 20.0
   float kp =  0.23/5;
   float kd = 10.0/5;
 #endif
@@ -84,16 +86,16 @@ unsigned char TEST_pulses[2000];
 unsigned int counter_test=0;
 
 // PINS SPECIFICATIONS
-// connect motor controller pins to Arduino digital pins
+// Connect motor controller pins to Arduino digital pins
 #ifdef L298TEST
-  // motor one
+  // Motor One
   int MOT_L_PWM_PIN = 10;
   int MOT_L_B_PIN = 9;      // input 1
   int MOT_L_A_PIN = 8;      // input 2
   //#define MOT_R_ENC_A_PIN 21
   #define MOT_L_ENC_B_PIN 19
 
-  // motor two
+  // Motor Two
   int MOT_R_PWM_PIN =  5;
   int MOT_R_B_PIN = 7;      // input 3
   int MOT_R_A_PIN = 6;      // input 4
@@ -104,51 +106,54 @@ unsigned int counter_test=0;
   #define F_US_ECHO 11
   #define F_US_TRIG 12
 
-
-
 #else
   //R Motor
   #define MOT_R_PWM_PIN   10
   #define MOT_R_A_PIN     28
   #define MOT_R_B_PIN     24
-//  #define MOT_R_ENC_A_PIN 21
+  // #define MOT_R_ENC_A_PIN 21
   #define MOT_R_ENC_B_PIN 20
   //L Motor
   #define MOT_L_PWM_PIN   11
   #define MOT_L_A_PIN     26
   #define MOT_L_B_PIN     22
-//  #define MOT_L_ENC_A_PIN 19
+  // #define MOT_L_ENC_A_PIN 19
   #define MOT_L_ENC_B_PIN 18
 
-    //Front Ultrasound sensor
+  // Front Ultrasound sensor
   #define F_US_ECHO 47
   #define F_US_TRIG 49
 
 #endif
 
-
 #define LED 13
 
 
 // Direction of movement
-unsigned char dir_right,dir_left;
+unsigned char dir_right, dir_left;
 
 // Variables to keep each encoder pulse
 volatile unsigned int encoderIZQ = 0, encoderDER = 0;
-// Variables to obtain robot position and orientation (X, Y Theta)
+
+//These variables keep track of the pulses received with a delay shorter than IGNORE_PULSE microseconds
+volatile unsigned int ignored_left = 0, ignored_right = 0;
+
+// Variables to obtain robot's position and orientation (X, Y Theta)
 unsigned int aux_encoderIZQ = 0, aux_encoderDER = 0;
 volatile signed int encoder = 0;
 //unsigned long pulsesDER=0;
 //unsigned long pulsesIZQ=0;
+
 // Auxiliar variables to filter false impulses from encoders
 volatile unsigned long auxr=0,auxl=0;
-// Auxiliar variables to keep micros() at encoders
+
+// Auxiliar variables to keep micros() at the encoders
 unsigned long tr,tl;
 
-// Radios relation allows to describe a curcular movement
+// Radii relation allows to describe a circular movement
 float Radios_relation=1.0;
 
-// Indicate the PWM that is applied to the motors
+// Indicate the PWM duty cycle that is applied to the motors
 int velr = SPEED_INI_R;
 int vell = SPEED_INI_L;
 int error = 0;
@@ -167,10 +172,10 @@ unsigned char ESTADO=0;
 
 unsigned char orden[1];
 
-// Indicate if rotation is clockwise or anti-clockwise
+// Indicate if rotation is clockwise or counterclockwise
 unsigned char clockwise=0;
 
-// Keeps the last measurement with the ultrasound sensors
+// Keeps the last measurement taken by the ultrasound sensors
 int dist_us_sensor_central=0;
 int dist_us_sensor_left=0;
 int dist_us_sensor_right=0;
@@ -179,48 +184,53 @@ int breaking_period=0;
 
 // Variable to check the theta for test
 float theta_max=0;
-//////////////////////////////////////////////////
-//  Right encoder interrupt
-//////////////////////////////////////////////////
-void cuentaDER()
-{
+
+///////////////////////////////
+//  Right encoder interrupt  //
+///////////////////////////////
+void cuentaDER() {
   tr=micros();
-  // if pulse is too fast from previoius is ignored
-  if (tr-auxr>IGNORE_PULSE)
+  // If a pulses arrives much faster than expected, filter it out!
+  //if (tr-auxr>IGNORE_PULSE)
+  if (1) // We have disabled checking for a given latency. To enable it back again cooment out this line and uncomment the one before
   {
-//    Serial.print(" Tiempo ");
-//    Serial.println(tr-auxr);
+    //Serial.print(" Tiempo ");
+    //Serial.println(tr-auxr);
     auxr=tr;
     encoderDER++;    //Add one pulse
   }
+  else
+    ignored_right++;
 //  encoder++;    //Add one pulse
 }  // end of cuentaDER
 
-//////////////////////////////////////////////////
-//  Left encoder interrupt
-//////////////////////////////////////////////////
-void cuentaIZQ()
-{
+//////////////////////////////
+//  Left encoder interrupt  //
+//////////////////////////////
+void cuentaIZQ() {
   tl=micros();
-  // if pulse is too fast from previoius is ignored
-  if (tl-auxl>IGNORE_PULSE)
+  // If a pulses arrives much faster than expected, filter it out!
+  //if (tl-auxl>IGNORE_PULSE)
+  if (1) // We have disabled checking for a given latency. To enable it back again cooment out this line and uncomment the one before
   {
     auxl=tl;
     encoderIZQ++;  //Add one pulse
   }
+  else
+    ignored_left++;
 //  encoder--;  //Add one pulse
 }  // end of cuentaIZQ
 
-//////////////////////////////////////////////////
-//  SETUP
-//////////////////////////////////////////////////
-void setup()
-{
+/////////////
+//  SETUP  //
+/////////////
+void setup() {
+
   // Add the interrupt lines for encoders
   attachInterrupt(digitalPinToInterrupt(MOT_R_ENC_B_PIN), cuentaDER, FALLING);
   attachInterrupt(digitalPinToInterrupt(MOT_L_ENC_B_PIN), cuentaIZQ, FALLING);
 
-  // set all the motor control pins to outputs
+  // Set all the motor control pins to outputs
   pinMode(MOT_R_PWM_PIN, OUTPUT);
   pinMode(MOT_L_PWM_PIN, OUTPUT);
   pinMode(MOT_R_A_PIN, OUTPUT);
@@ -243,7 +253,7 @@ void setup()
   pinMode(MOT_L_A_PIN, OUTPUT);
   pinMode(MOT_L_B_PIN, OUTPUT);
 
-  // set encoder pins to inputs
+  // Set encoder pins to inputs
   pinMode(MOT_L_ENC_B_PIN, INPUT);
   pinMode(MOT_R_ENC_B_PIN, INPUT);
 
@@ -252,71 +262,64 @@ void setup()
   pinMode(R_US_TRIG,OUTPUT);
   pinMode(R_US_ECHO,INPUT);
 
-  /* Declaramos el pin 9 como salida del pulso ultrasonico */
+  // Pin 9 will be the output of the ultarsound sensor's pulse
   pinMode(F_US_TRIG, OUTPUT);
-  /* Declaramos el pin 8 como entrasa (tiempo que tarda en volver) */
+
+  // Pin 8 will be an input, said input is proportional to the time it takes the wave reflection to reach the sensor
   pinMode(F_US_ECHO, INPUT);
 
   pinMode(LED, OUTPUT);
 
-  Serial.begin(38400);      //init the serial port
+  // Initialize the seiral port at a speed of 38400 Bauds
+  Serial.begin(38400);
   Serial.print("LOLA INI ");
   Serial.println(VERSION);
-
 }  // end of setup
 
-
-
-//////////////////////////////////////////////////
-//  MOVE MOTORS:
-//  dir_right (1: foward / 0: backwards)
-//  dir_left  (1: foward / 0: backwards)
-//
-//
-//////////////////////////////////////////////////
-void move_motors()
-{
+///////////////////////////////////////////
+//              MOVE MOTORS:             //
+//  dir_right (1: foward / 0: backwards) //
+//  dir_left  (1: foward / 0: backwards) //
+///////////////////////////////////////////
+void move_motors() {
   // now turn off motors
   // Adaptation for L298n
   encoderIZQ = 0;
   encoderDER = 0;
+  ignored_left = ignored_right = 0;
   aux_encoderIZQ = 0;
   aux_encoderDER = 0;
   encoder = 0;
   encoder_ant=0;
 //  pulsesDER=0;
 //  pulsesIZQ=0;
-  if (dir_right==1)
-  {
+  if (dir_right == 1) {
     // Right motor
     digitalWrite(MOT_R_A_PIN, LOW);
     digitalWrite(MOT_R_B_PIN, HIGH);
   }
-  else
-  {
+  else {
     // Right motor
     digitalWrite(MOT_R_A_PIN, HIGH);
     digitalWrite(MOT_R_B_PIN, LOW);
   }
 
-  if (dir_left==1)
-  {
+  if (dir_left == 1) {
     // Left motor
     digitalWrite(MOT_L_A_PIN, HIGH);
     digitalWrite(MOT_L_B_PIN, LOW);
   }
-  else
-  {
+  else {
     // Left motor
     digitalWrite(MOT_L_A_PIN, LOW);
     digitalWrite(MOT_L_B_PIN, HIGH);
   }
+
   velr=SPEED_INI_R;
   vell=SPEED_INI_L;
 
-  // If any speed is zero breaking mode is activated
-  if (SPEED_INI_R==0)
-  {
+  // If any speed is 0 braking mode is activated
+  if (SPEED_INI_R==0) {
     digitalWrite(MOT_R_A_PIN, LOW);
     digitalWrite(MOT_R_B_PIN, LOW);
     analogWrite(MOT_R_PWM_PIN, 255);
@@ -324,15 +327,13 @@ void move_motors()
   else
     analogWrite(MOT_R_PWM_PIN, velr);
 
-  if (SPEED_INI_L==0)
-  {
+  if (SPEED_INI_L==0) {
     digitalWrite(MOT_L_A_PIN, LOW);
     digitalWrite(MOT_L_B_PIN, LOW);
     analogWrite(MOT_L_PWM_PIN, 255);
   }
   else
     analogWrite(MOT_L_PWM_PIN, vell);
-
 }  // end move_motors
 
 
@@ -733,7 +734,12 @@ void dep()
   Serial.print(" encoderDER: ");
   Serial.print(encoderDER);
   Serial.print(" encoderIZQ: ");
-  Serial.println(encoderIZQ);
+  Serial.print(encoderIZQ);
+  Serial.print(" Igr_IZQ: ");
+  Serial.print(ignored_left);
+  Serial.print(" Igr_DER: ");
+  Serial.println(ignored_right);
+  //Serial.println(encoderIZQ);
 /*
   Serial.print(" Theta ");
   Serial.print(Theta*180/3.14);
@@ -787,6 +793,7 @@ short int read_number(int numero)
 //////////////////////////////////////////////////
 
 void parse_input(void) {
+  //String incoming_params = String(Serial.readStringUntil('X'))
   unsigned char incoming_byte = '\0', incoming_number[N_DIGS] = {'\0'};
   int i = 0;
   while (Serial.available() > 0) {
@@ -1045,6 +1052,8 @@ void analizar_orden()
       if (num!=0)
       {
         PULSES_NUM=num/mmperpulse;
+        Serial.print("PULSES_NUM: ");
+        Serial.println(PULSES_NUM);
         // The is a minimum space to move
         if (PULSES_NUM>INERTIA_LIMIT)
         {
@@ -1148,6 +1157,10 @@ void analizar_orden()
       while(Theta<-6.2832)
         Theta=Theta+6.28318531;
       disp_global_pos();
+      Serial.print(" encoderDER ");
+      Serial.print(encoderDER);
+      Serial.print(" encoderIZQ ");
+      Serial.println(encoderIZQ);
       //sprintf(cadena,"X%05d Y%05d T%03d",(int)X,(int)Y,(int)((float)Theta*(float)57.29578));
       //Serial.println(cadena);
       break;
@@ -1205,7 +1218,7 @@ void loop()
  unsigned char aux[1];
  unsigned char primera_vez=1;
  static unsigned char us_sensor=0;
- unsigned long referencia;
+ unsigned long referencia, last_pulses = 0, current_pulses;
  unsigned char flag=1;
  unsigned char contador_dep=0;
 
@@ -1268,10 +1281,6 @@ void loop()
       if((millis()-time1)>5000)
       {
         Serial.print(".");
-        Serial.print(WHEEL_DIST);
-        Serial.print(mmperpulse);
-        Serial.print(KKI);
-        Serial.println(c_factor);
         time1=millis();
       }
       // Just in case an error produce movement of the motors
@@ -1377,13 +1386,17 @@ void loop()
         }
           update_global_positions();
 
-        if(millis()-time>TIME_PID)
+        //if(millis()-time>TIME_PID)
+        if(current_pulses = (unsigned int) (((encoderDER + encoderIZQ) / 2) + 0.4999) - last_pulses > PID_PULSES)
         {
-          time=millis();
+          //time=millis();
+          //Serial.println("Entered PID calibration!");
+          last_pulses = current_pulses;
           straigh_dist();
+  //        delay(250);
           if (theta_max<abs(Theta))
             theta_max=abs(Theta);
-          //dep();
+          dep();
         }
       }
       else
