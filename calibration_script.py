@@ -20,7 +20,7 @@ class terminal_colors:
 #Constants
 ARDUINO_BAUDRATE = 38400
 REDUCING_FACTOR = 50.9 #The reducer makes axis speed = central_speed / 50.9.
-ENC_PULSES_PER_REV = 3 #The encoders emit 3 pulses per rev
+ENC_PULSES_PER_REV = 7 #The encoders emit 3 pulses per rev
 NOM_DIAMETER = 190 #In mm
 WHEELBASE = 535 #In mm
 N_TURNS = 5
@@ -100,9 +100,10 @@ def get_data(port):
     return dumped_data
 
 def get_straight_data(port):
-    matches = findall(r"\d+", port.readline().decode())
 
-    return matches[4]
+    matches = findall(r"\d+", port.readline().decode())
+    print(matches)
+    return int(matches[4])
 
 def print_file(data):
     data = open("data.txt", "r")
@@ -116,12 +117,12 @@ def print_file(data):
 
 def execute_command(command, port):
     finished = 0
-    str_pulses = 0
+    str_p = 0
 
-    if input("Input S to skip this test: ") == 'S':
-        return int(str_pulses)
+    if command[0] == "S":
+        port.write(command.encode())
 
-    if command == "Get data":
+    elif command == "Get data":
         print("Let's go get that data!\n", end="")
         return get_data(port)
 
@@ -140,20 +141,17 @@ def execute_command(command, port):
         port.write(TURN_BOTH_WHEELS.encode())
         port.reset_input_buffer()
 
-    elif command == "Straight 3 m":
+    elif command == "Advance 3 m":
         print("Going straight for 3 m!\n", end="")
         port.write(GO_STRAIGHT_3M.encode())
         port.reset_input_buffer()
-        str_pulses = get_straight_data(port)
+        str_p = get_straight_data(port)
 
     elif command == "A":
         port.write(TURN_L_LITTLE.encode())
 
     elif command == "D":
         port.write(TURN_R_LITTLE.encode())
-
-    elif command[0] == "S":
-        port.write(command.encode())
 
     else:
         return
@@ -163,7 +161,7 @@ def execute_command(command, port):
         if char == ".":
             finished += 1
             if finished == 2:
-                return int(str_pulses)
+                return str_p
 
 def initial_data(port):
 
@@ -364,6 +362,9 @@ def main():
     print_updated_data()
 
     for i in range(N_REPS):
+        if input("Input S to skip the test: ") == "S":
+            compute = False
+            continue
         p_array = []
         d_array = []
         execute_command("Turn L stopped", arduino)
@@ -381,7 +382,12 @@ def main():
 
     user_tweaks(arduino, "Continue?")
 
+    compute = True
+
     for i in range(N_REPS):
+        if input("Input S to skip the test: ") == "S":
+            compute = False
+            continue
         p_array = []
         d_array = []
         execute_command("Turn R stopped", arduino)
@@ -399,7 +405,12 @@ def main():
 
     user_tweaks(arduino, "Continue?")
 
+    compute = True
+
     for i in range(N_REPS):
+        if input("Input S to skip the test: ") == "S":
+            compute = False
+            continue
         p_array = []
         d_array = []
         execute_command("Turn both wheels", arduino)
@@ -415,24 +426,26 @@ def main():
         B_PULSES.append(find_maximum(convoluted_signal, "Both"))
         print("Computed pulses: %g\n" % (B_PULSES[i]), end = "")
 
-    REAL_PULSES_PER_TURN_L = sum(L_PULSES) / len(L_PULSES)
-    REAL_PULSES_PER_TURN_R = sum(R_PULSES) / len(R_PULSES)
-    REAL_PULSES_PER_TURN_BOTH = sum(B_PULSES) / len(B_PULSES)
+    if compute:
+        REAL_PULSES_PER_TURN_L = sum(L_PULSES) / len(L_PULSES)
+        REAL_PULSES_PER_TURN_R = sum(R_PULSES) / len(R_PULSES)
+        REAL_PULSES_PER_TURN_BOTH = sum(B_PULSES) / len(B_PULSES)
 
-    print(terminal_colors.pink + "Left pulses: %g\n" % (REAL_PULSES_PER_TURN_L), end = "")
-    print("Right pulses: %g\n" % (REAL_PULSES_PER_TURN_R), end = "")
-    print("Both pulses: %g\n" % (REAL_PULSES_PER_TURN_BOTH), end = "")
+        print(terminal_colors.pink + "Left pulses: %g\n" % (REAL_PULSES_PER_TURN_L), end = "")
+        print("Right pulses: %g\n" % (REAL_PULSES_PER_TURN_R), end = "")
+        print("Both pulses: %g\n" % (REAL_PULSES_PER_TURN_BOTH), end = "")
 
+        K = 2 * REAL_PULSES_PER_TURN_BOTH / REAL_PULSES_PER_TURN_R
+        print("K value: %g\n" % (K), end = "")
 
-    K = 2 * REAL_PULSES_PER_TURN_BOTH / REAL_PULSES_PER_TURN_R
-    print("K value: %g\n" % (K), end = "")
-
-    ED = REAL_PULSES_PER_TURN_R / REAL_PULSES_PER_TURN_L
-    print("Diameter error (ED): %g\n" % (ED) + terminal_colors.end_color, end = "")
+        ED = REAL_PULSES_PER_TURN_R / REAL_PULSES_PER_TURN_L
+        print("Diameter error (ED): %g\n" % (ED) + terminal_colors.end_color, end = "")
 
     user_tweaks(arduino, "Continue?")
 
-    straight_pulses = execute_command("Straight 3 m", arduino)
+    print("Hey!")
+
+    straight_pulses = execute_command("Advance 3 m", arduino)
 
     print(terminal_colors.pink + "Recorded pulses: %d\n" % (straight_pulses) + terminal_colors.end_color, end = "")
 
@@ -441,14 +454,15 @@ def main():
     MM_TO_PULSES = real_distance / straight_pulses
     print(terminal_colors.pink + "MM -> Pulses conversion factor: %g\n" % (MM_TO_PULSES), end = "")
 
-    WHEELBASE = REAL_PULSES_PER_TURN_R * MM_TO_PULSES * K / (2 * pi)
-    print("Adjusted wheelbase: %g mm\n" % (WHEELBASE))
+    if compute:
+        WHEELBASE = REAL_PULSES_PER_TURN_R * MM_TO_PULSES * K / (2 * pi)
+        print("Adjusted wheelbase: %g mm\n" % (WHEELBASE))
 
-    DR = MM_TO_PULSES * PULSES_PER_REV / pi
-    print("Real right wheel diameter: %g\n" % (DR), end = "")
+        DR = MM_TO_PULSES * PULSES_PER_REV / pi
+        print("Real right wheel diameter: %g\n" % (DR), end = "")
 
-    ES = (DR / NOM_DIAMETER) * ((1 + ED) / 2)
-    print("Scaling error (ES): %g\n\033[0m" % (ES), end = "")
+        ES = (DR / NOM_DIAMETER) * ((1 + ED) / 2)
+        print("Scaling error (ES): %g\n\033[0m" % (ES), end = "")
 
 
     execute_command("S" + str(WHEELBASE) + "w" + str(ED) + "D" + str(MM_TO_PULSES) + "M" + "1R", arduino) #1R resets the correction factor!

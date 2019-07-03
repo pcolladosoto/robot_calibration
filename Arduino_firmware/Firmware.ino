@@ -1,9 +1,9 @@
-// You can find more information in:
+// You can find more information at:
 // www.
 // Please include reference
 // ................................
 
-// Date
+// Date 3/07/19
 
 // Version
 #define VERSION "V1.00"
@@ -22,7 +22,7 @@
 //      ERROR VARIABLE          //
 // IDENTIFICATION ERRORS CODES  //
 //////////////////////////////////
-unsigned char CODE_ERROR=0;
+unsigned char ERROR_CODE = 0;
 #define NO_ERROR              0
 #define NO_NUMBER             1 // Waiting for a number, time-out
 #define OUT_RANGE             2 // Received number out of range
@@ -39,14 +39,14 @@ unsigned char CODE_ERROR=0;
   #define R_US_ECHO 51
 
 // Global robot position
-float X=0,Y=0,Theta=0;
+float X = 0, Y = 0, Theta = 0;
 
 // Calibration constant
 #ifdef ROBOT_LOLA
-  float KKI=1;                  // deviation from theoretical left wheel diameter,rigth wheel as reference >1 wheel bigger than nominal
+  float KKI = 1;                  // deviation from theoretical left wheel diameter,rigth wheel as reference >1 wheel bigger than nominal
 
-  int   WHEEL_DIST=190;         // Wheel distance in mm
-  float mmperpulse=0.2094;      // mm per pulse in the encoders
+  int   WHEEL_DIST = 190;         // Wheel distance in mm
+  float mmperpulse = 0.2094;      // mm per pulse in the encoders
   #define INERTIA_LIMIT  40     // Inertia limit to stop few pulses before the limit
   #define TIME_PID       200    // Time in miliseconds for each iteration of the PID
   #define BREAK_PULSES   150    // Number of pulses from the end to start breaking
@@ -55,17 +55,17 @@ float X=0,Y=0,Theta=0;
   // PID (PD) constants
   //float kp = 0.1;
   //float kd = 0.4;
-  float kp =0.5; // 0.23*2;
-  float kd =2; // 10.0*2;
+  float kp = 0.5; // 0.23*2;
+  float kd = 2; // 10.0*2;
 #else
-  float KKI=1;               // Deviation from theoretical left wheel diameter; the rigth wheel is the reference; >1 wheel bigger than the nominal one
+  float KKI = 1;               // Deviation from theoretical left wheel diameter; the rigth wheel is the reference; >1 wheel bigger than the nominal one
 
   //Calibration correction factor for turning
   int c_factor = 1;
 
   //Current_pulses and last_pulses for PID calibration
-  float WHEEL_DIST=535;           //UAH 578; //UMB          //575;      // Wheel distance in mm
-  float mmperpulse=1.68;          // mm per pulse in the encoders
+  float WHEEL_DIST = 535;           //UAH 578; //UMB          //575;      // Wheel distance in mm
+  float mmperpulse = 1.68;          // mm per pulse in the encoders
   #define INERTIA_LIMIT  1        // Inertia limit to stop few pulses before the limit
   #define TIME_PID        500     // Time in miliseconds for each iteration of the PID
   #define BREAK_PULSES   1        // Number of pulses from the end to start breaking
@@ -75,30 +75,30 @@ float X=0,Y=0,Theta=0;
   // PID (PD) constants
   //float kp =  0.5;
   //float kd = 20.0; //kd = 20.0
-  float kp =  0.23/5;
-  float kd = 10.0/5;
+  float kp =  0.23 / 5;
+  float kd = 10.0 / 5;
 #endif
-unsigned char SPEED_INI_L=255;  // 170
-unsigned char SPEED_INI_R=255;  // 100
+unsigned char SPEED_INI_L = 255;  // 170
+unsigned char SPEED_INI_R = 255;  // 100
 
 unsigned char TEST_distances[2000];
 unsigned char TEST_pulses[2000];
-unsigned int counter_test=0;
+unsigned int counter_test = 0;
 
 // PINS SPECIFICATIONS
 // Connect motor controller pins to Arduino digital pins
 #ifdef L298TEST
   // Motor One
   int MOT_L_PWM_PIN = 10;
-  int MOT_L_B_PIN = 9;      // input 1
-  int MOT_L_A_PIN = 8;      // input 2
+  int MOT_L_B_PIN = 9;      // Input 1
+  int MOT_L_A_PIN = 8;      // Input 2
   //#define MOT_R_ENC_A_PIN 21
   #define MOT_L_ENC_B_PIN 19
 
   // Motor Two
   int MOT_R_PWM_PIN =  5;
-  int MOT_R_B_PIN = 7;      // input 3
-  int MOT_R_A_PIN = 6;      // input 4
+  int MOT_R_B_PIN = 7;      // Input 3
+  int MOT_R_A_PIN = 6;      // Input 4
   //#define MOT_L_ENC_A_PIN 19
   #define MOT_R_ENC_B_PIN 20
 
@@ -107,16 +107,16 @@ unsigned int counter_test=0;
   #define F_US_TRIG 12
 
 #else
-  //R Motor
-  #define MOT_R_PWM_PIN   10
-  #define MOT_R_A_PIN     28
-  #define MOT_R_B_PIN     24
+  // R Motor
+  #define MOT_R_PWM_PIN   10 // PB4
+  #define MOT_R_A_PIN     28 // PA6
+  #define MOT_R_B_PIN     24 // PA2
   // #define MOT_R_ENC_A_PIN 21
   #define MOT_R_ENC_B_PIN 20
-  //L Motor
-  #define MOT_L_PWM_PIN   11
-  #define MOT_L_A_PIN     26
-  #define MOT_L_B_PIN     22
+  // L Motor
+  #define MOT_L_PWM_PIN   11  //PB5
+  #define MOT_L_A_PIN     26 // PA4
+  #define MOT_L_B_PIN     22 // PA0
   // #define MOT_L_ENC_A_PIN 19
   #define MOT_L_ENC_B_PIN 18
 
@@ -138,20 +138,20 @@ volatile unsigned int encoderIZQ = 0, encoderDER = 0;
 //These variables keep track of the pulses received with a delay shorter than IGNORE_PULSE microseconds
 volatile unsigned int ignored_left = 0, ignored_right = 0;
 
-// Variables to obtain robot's position and orientation (X, Y Theta)
+// Variables to obtain the robot's position and orientation (X, Y, Theta)
 unsigned int aux_encoderIZQ = 0, aux_encoderDER = 0;
 volatile signed int encoder = 0;
 //unsigned long pulsesDER=0;
 //unsigned long pulsesIZQ=0;
 
-// Auxiliar variables to filter false impulses from encoders
-volatile unsigned long auxr=0,auxl=0;
+// Auxiliary variables to filter false impulses from encoders
+volatile unsigned long auxr = 0, auxl = 0;
 
-// Auxiliar variables to keep micros() at the encoders
-unsigned long tr,tl;
+// Auxiliary variables to keep micros() at the encoders
+unsigned long tr, tl;
 
 // Radii relation allows to describe a circular movement
-float Radios_relation=1.0;
+float radii_relation = 1.0;
 
 // Indicate the PWM duty cycle that is applied to the motors
 int velr = SPEED_INI_R;
@@ -160,7 +160,8 @@ int error = 0;
 int encoder_ant;
 unsigned int PULSES_NUM;
 
-unsigned char ESTADO=0;
+// FSM's STATES
+unsigned char ESTADO = 0;
 #define EST_REPOSO        0
 #define EST_ROTATE_UNCLK  2
 #define EST_ROTATE_CLK    3
@@ -172,54 +173,50 @@ unsigned char ESTADO=0;
 
 unsigned char orden[1];
 
-// Indicate if rotation is clockwise or counterclockwise
-unsigned char clockwise=0;
+// Indicate if the rotation is clockwise or counterclockwise
+unsigned char clockwise = 0;
 
 // Keeps the last measurement taken by the ultrasound sensors
-int dist_us_sensor_central=0;
-int dist_us_sensor_left=0;
-int dist_us_sensor_right=0;
+int dist_us_sensor_central = 0;
+int dist_us_sensor_left = 0;
+int dist_us_sensor_right = 0;
 
-int breaking_period=0;
+int breaking_period = 0;
 
 // Variable to check the theta for test
-float theta_max=0;
+float theta_max = 0;
 
 ///////////////////////////////
 //  Right encoder interrupt  //
 ///////////////////////////////
 void cuentaDER() {
-  tr=micros();
+  tr = micros();
   // If a pulses arrives much faster than expected, filter it out!
+  // We have disabled checking for a given latency. To enable it back again cooment out this line and uncomment the one before
   //if (tr-auxr>IGNORE_PULSE)
-  if (1) // We have disabled checking for a given latency. To enable it back again cooment out this line and uncomment the one before
-  {
-    //Serial.print(" Tiempo ");
-    //Serial.println(tr-auxr);
-    auxr=tr;
-    encoderDER++;    //Add one pulse
+  if (1) {
+    auxr = tr;
+    encoderDER++;
   }
   else
     ignored_right++;
-//  encoder++;    //Add one pulse
-}  // end of cuentaDER
+}  // End of cuentaDER()
 
 //////////////////////////////
 //  Left encoder interrupt  //
 //////////////////////////////
 void cuentaIZQ() {
-  tl=micros();
+  tl = micros();
   // If a pulses arrives much faster than expected, filter it out!
+  // We have disabled checking for a given latency. To enable it back again cooment out this line and uncomment the one below
   //if (tl-auxl>IGNORE_PULSE)
-  if (1) // We have disabled checking for a given latency. To enable it back again cooment out this line and uncomment the one before
-  {
-    auxl=tl;
-    encoderIZQ++;  //Add one pulse
+  if (1) {
+    auxl = tl;
+    encoderIZQ++;
   }
   else
     ignored_left++;
-//  encoder--;  //Add one pulse
-}  // end of cuentaIZQ
+}  // End of cuentaIZQ()
 
 /////////////
 //  SETUP  //
@@ -274,342 +271,231 @@ void setup() {
   Serial.begin(38400);
   Serial.print("LOLA INI ");
   Serial.println(VERSION);
-}  // end of setup
+}  // End of setup()
 
 ///////////////////////////////////////////
-//              MOVE MOTORS:             //
+//              MOVE MOTORS              //
 //  dir_right (1: foward / 0: backwards) //
 //  dir_left  (1: foward / 0: backwards) //
 ///////////////////////////////////////////
 void move_motors() {
   // now turn off motors
   // Adaptation for L298n
-  encoderIZQ = 0;
-  encoderDER = 0;
-  ignored_left = ignored_right = 0;
-  aux_encoderIZQ = 0;
-  aux_encoderDER = 0;
-  encoder = 0;
-  encoder_ant=0;
-//  pulsesDER=0;
-//  pulsesIZQ=0;
-  if (dir_right == 1) {
-    // Right motor
-    digitalWrite(MOT_R_A_PIN, LOW);
-    digitalWrite(MOT_R_B_PIN, HIGH);
-  }
-  else {
-    // Right motor
-    digitalWrite(MOT_R_A_PIN, HIGH);
-    digitalWrite(MOT_R_B_PIN, LOW);
-  }
+  unsigned int inhib_r = 0xBB, inhib_l = 0xEE;
 
-  if (dir_left == 1) {
-    // Left motor
-    digitalWrite(MOT_L_A_PIN, HIGH);
-    digitalWrite(MOT_L_B_PIN, LOW);
-  }
-  else {
-    // Left motor
-    digitalWrite(MOT_L_A_PIN, LOW);
-    digitalWrite(MOT_L_B_PIN, HIGH);
-  }
+  encoderIZQ = encoderDER = ignored_left = ignored_right = aux_encoderIZQ = aux_encoderDER = encoder = encoder_ant = 0;
+
+  //Deactivate both motor's H-bridge
+  PORTA &= 0xAA;
 
   velr=SPEED_INI_R;
   vell=SPEED_INI_L;
 
-  // If any speed is 0 braking mode is activated
-  if (SPEED_INI_R==0) {
-    digitalWrite(MOT_R_A_PIN, LOW);
-    digitalWrite(MOT_R_B_PIN, LOW);
-    analogWrite(MOT_R_PWM_PIN, 255);
+  if (!velr)
+    PORTB |= 0x10;
+
+  else {
+    inhib_r |= 0x44;
+    analogWrite(MOT_R_PWM_PIN, velr)
   }
+
+  if (!vell)
+    PORTB |= 0x20;
+
+  else {
+    inhib_l |= 0x11;
+    analogWrite(MOT_L_PWM_PIN, vell)
+  }  
+
+  if (dir_right && dir_left)
+    PORTA |= 0x14 & inhib_r & inhib_l;
+
+  else if (!dir_right && dir_left)
+    PORTA |= 0x50 & inhib_r & inhib_l;
+
+  else if (dir_right && !dir_left)
+    PORTA |= 0x5 & inhib_r & inhib_l;
+  
   else
-    analogWrite(MOT_R_PWM_PIN, velr);
-
-  if (SPEED_INI_L==0) {
-    digitalWrite(MOT_L_A_PIN, LOW);
-    digitalWrite(MOT_L_B_PIN, LOW);
-    analogWrite(MOT_L_PWM_PIN, 255);
-  }
-  else
-    analogWrite(MOT_L_PWM_PIN, vell);
-}  // end move_motors
+    PORTA |= 0x11 & inhib_r & inhib_l;
+}  // End of move_motors()
 
 
-//////////////////////////////////////////////////
-//
-//  Ultra sond range detector
-//  Return -1: Distance above 3m
-//          0: No return pulse detected
-//         (int)   distance in cm
-//
-// Inputs: TriggerPin
-//         EchoPin
-//////////////////////////////////////////////////
-int us_range(int TriggerPin, int EchoPin)
-{
+/////////////////////////////////////////////////
+//         ULTRA SOUND RANGE DETECTOR          //
+//  Return ->  -1:   Distance above 3m         //
+//              0:   No return pulse detected  //
+//            (int): Distance in cm            //
+//                                             //
+// Inputs -> TriggerPin                        //
+//           EchoPin                           //
+/////////////////////////////////////////////////
+int us_range(int TriggerPin, int EchoPin) {
    long duration, distanceCm;
 
-   digitalWrite(TriggerPin, LOW);  //Keep the line LOW for 4us, for a clean flank
+   digitalWrite(TriggerPin, LOW);   // Keep the line LOW for 4us for a clean flank
    delayMicroseconds(4);
-   digitalWrite(TriggerPin, HIGH);  //Generate a high transition
+   digitalWrite(TriggerPin, HIGH);  // Generate a high transition
    delayMicroseconds(10);
-   digitalWrite(TriggerPin, LOW);   //After 10us, lower the line
+   digitalWrite(TriggerPin, LOW);   // After 10us, lower the line
 
-   // Mesuare the duration in microseconds
-   // Must be taken into account that this means a delay
-   // of 10ms if no return is detected.
+   // Measure the duration in microseconds
+   // Must be taken into account that this implies a delay of 10ms if no return is detected.
    duration = pulseIn(EchoPin, HIGH, 10000);
-//   Serial.print("\nEchoPin:");
-//   Serial.print(EchoPin);
-//   Serial.print("\nTriggerPin:");
-//   Serial.print(TriggerPin);
-//   Serial.print("\nDuracion:");
-//   Serial.print(duration);
+
    // Check this number
-   distanceCm = duration/58.2;   //convertimos a distancia, en cm
+   distanceCm = duration/58.2;  // Convert the distance to cm
+
    if (distanceCm == 0)
     return 0;
+
    if (distanceCm < 170)
     return distanceCm;
+
   else
     return 175;
-}  // end of int us_range(int TriggerPin, int EchoPin)
+}  // End of us_range()
 
-//////////////////////////////////////////////////
-//  STOP_MOTORS
-//////////////////////////////////////////////////
-void stop_motors()
-{
-
-  float aux_float;
-
-  // now turn off motors
+///////////////////
+//  STOP_MOTORS  //
+///////////////////
+void stop_motors() {
   // Adaptation for L298n
-  digitalWrite(MOT_R_A_PIN, LOW);
-  digitalWrite(MOT_R_B_PIN, LOW);
-  digitalWrite(MOT_L_A_PIN, LOW);
-  digitalWrite(MOT_L_B_PIN, LOW);
-  analogWrite(MOT_R_PWM_PIN, 255);
-  analogWrite(MOT_L_PWM_PIN, 255);
+  //We will fix the same duty cycle for the PWM outputs to make the braking spped equal!
+  //analogWrite(MOT_R_PWM_PIN, 255);
+  //analogWrite(MOT_L_PWM_PIN, 255);
+  PORTB |= 0x3 << 4;
+  PORTA &= 0xAA;
   delay(300);
-//  analogWrite(MOT_R_PWM_PIN, 0);
-//  analogWrite(MOT_L_PWM_PIN, 0);
-}  // end stop_motors
+}  // End of stop_motors()
 
-//////////////////////////////////////////////////
-//  SPEED_NORMALIZATION
-//
-//  Speeds are normalized in order to work
-//  at maximum speed give as SPEED_INI_X
-//
-//////////////////////////////////////////////////
-void speed_normalization()
-{
-    if (velr>vell)
-    {
-      vell-=(velr-SPEED_INI_R);
-      velr=SPEED_INI_R;
-      if (vell<0)
-        vell=0;
+//////////////////////////////////////////////
+//           SPEED_NORMALIZATION            //
+//  Speeds are normalized in order to work  //
+//  at maximum speed given as SPEED_INI_X   //
+//////////////////////////////////////////////
+void speed_normalization() {
+    if (velr > vell) {
+      vell -= (velr - SPEED_INI_R);
+      velr = SPEED_INI_R;
+      if (vell < 0)
+        vell = 0;
     }
-    else
-    {
-      velr-=(vell-SPEED_INI_L);
-      vell=SPEED_INI_L;
-      if (velr<0)
-        velr=0;
+    else {
+      velr -= (vell - SPEED_INI_L);
+      vell = SPEED_INI_L;
+      if (velr < 0)
+        velr = 0;
     }
-} // end of speed_normalization
+} // End of speed_normalization()
 
 
-//////////////////////////////////////////////////
-//  STRAIGH_DIST
-//////////////////////////////////////////////////
-void straigh_dist()
-{
-  float s,sl,sr;
+///////////////////
+//  STRAIGH_DIST //
+///////////////////
+void straigh_dist() {
   long encoder_long;
-  float aux_float;
-  unsigned int temp_encDER;
-  unsigned int temp_encIZQ;
+  unsigned int temp_encDER, temp_encIZQ;
+  float s, sl, sr, aux_float;
 
-/*
-  // To avoid overflow enconder
-  // must be reset periodically
-  if (encoderDER>encoderIZQ)
-  {
-    encoderDER-=(int)((float)encoderIZQ*KKI+0.499999);
-    aux_encoderDER=encoderDER;
+  temp_encDER = encoderDER;
+  temp_encIZQ = encoderIZQ;
 
-    // The maximum distance is 9999 mm, so no overflow risk
-    pulsesDER+=(int)((float)encoderIZQ*KKI+0.499999);
-    pulsesIZQ+=encoderIZQ;
-
-    encoderIZQ=0;
-    aux_encoderIZQ=0;
-  }
-  else
-  {
-    encoderIZQ-=(int)((float)encoderDER/KKI+0.499999);
-    aux_encoderIZQ=encoderIZQ;
-    // The maximum distance is 9999 mm, so no overflow risk
-    pulsesIZQ+=(int)((float)encoderDER/KKI+0.499999);
-    pulsesDER+=encoderDER;
-    encoderDER=0;
-    aux_encoderDER=0;
-  }
-*/
-  temp_encDER=encoderDER;
-  temp_encIZQ=encoderIZQ;
-
-  if (counter_test<2000)
-    {
-      TEST_distances[counter_test]=dist_us_sensor_central;
-      TEST_pulses[counter_test++ ]=(unsigned int)(0x00FF & temp_encDER);
+  if (counter_test < 2000) {
+      TEST_distances[counter_test] = dist_us_sensor_central;
+      TEST_pulses[counter_test++ ] = (unsigned int) (0x00FF & temp_encDER);
     }
 
-//  pulsesDER=temp_encDER;
-//  pulsesIZQ=temp_encIZQ;
+  // Encoder (below) is the difference of both encoders times the normalization constant accounting for the diameter's error
+  aux_float = KKI * (float) temp_encIZQ - (float) temp_encDER;
 
+  if (aux_float > 0)
+    aux_float += 0.499999;
+  if (aux_float < 0)
+    aux_float -= 0.499999;
+  encoder = (int) aux_float;
 
-  // encoder is the difference from both encoder
-  // with the nornalization constant for wheel diameter error
-  aux_float=KKI*(float)temp_encIZQ-(float)temp_encDER;
-  if (aux_float>0)
-    aux_float+=0.499999;
-  if (aux_float<0)
-    aux_float-=0.499999;
-  encoder=(int)aux_float;
-//  encoder=(int)(KKI*(float)pulsesIZQ-(float)pulsesDER+0.499999);
   error = encoder_ant - encoder;
   encoder_ant = encoder;
   // Implement PID (just PD)
-  // Right wheel speed is updated
-  // If it is not breaking at the end of the movement
-  if (breaking_period==0)
-  {
-    aux_float=(float)encoder * kp - (float)error * kd;
-//    aux_float=(float)encoder * kp ;
-    if (aux_float>0)
-      aux_float+=0.5;
-    if (aux_float<0)
-      aux_float-=0.5;
+  // Right wheel speed is updated if it is not braking at the end of the movement
+  if (breaking_period == 0) {
+    aux_float = (float) encoder * kp - (float) error * kd;
 
-  velr += (int)aux_float; // <------------------------------------------------------------------------------------------------------------------------------------------------
+    if (aux_float > 0)
+      aux_float += 0.5;
+    if (aux_float < 0)
+      aux_float -= 0.5;
+
+  velr += (int) aux_float;
 
   speed_normalization();
 
-  // Write in PWM the speeds for each wheel
+  // Write, as PWM duty cycles, the speeds for each wheel
   analogWrite(MOT_R_PWM_PIN, velr);
   analogWrite(MOT_L_PWM_PIN, vell);
   delay(200);
   }
-}  // fin de straigh_dist()
+}  // End of straigh_dist()
 
 
-//////////////////////////////////////////////////
-//  ONE_FASTER_DIST
-//  Control the pid when the right wheel must
-//  be faster than the left to make a circular
-//  movement.
-//////////////////////////////////////////////////
-void one_faster_dist()
-{
+///////////////////////////////////////////////////////////
+//                  ONE_FASTER_DIST                      //
+//  Control the PID algorithm when the right wheel must  //
+//  be faster than the left one to perform a circular    //
+//                     movement.                         //
+///////////////////////////////////////////////////////////
+void one_faster_dist() {
   int interval;
-  unsigned int temp_encDER;
-  unsigned int temp_encIZQ;
-
+  unsigned int temp_encDER, temp_encIZQ;
 
   update_global_positions();
-/*
-  // The maximum distance is 9999 mm, so no overflow risk
-  pulsesDER+=encoderDER;
-  encoderDER=0;
-  aux_encoderDER=0;
-  pulsesIZQ+=encoderIZQ;
-  encoderIZQ=0;
-  aux_encoderDER=0;
-*/
-  temp_encDER=encoderDER;
-  temp_encIZQ=encoderIZQ;
 
-//  pulsesDER=temp_encDER;
-//  pulsesIZQ=temp_encIZQ;
+  temp_encDER = encoderDER;
+  temp_encIZQ = encoderIZQ;
 
-
-  if (ESTADO==EST_TEST_CIRC_R)
-  {
-    if (counter_test<2000)
-    {
-      TEST_distances[counter_test]=dist_us_sensor_central;
-      TEST_pulses[counter_test++ ]=(unsigned int)(0x00FF & temp_encDER);
+  if (ESTADO == EST_TEST_CIRC_R) {
+    if (counter_test < 2000) {
+      TEST_distances[counter_test] = dist_us_sensor_central;
+      TEST_pulses[counter_test++ ] = (unsigned int) (0x00FF & temp_encDER);
     }
   }
   else
-    if (ESTADO==EST_TEST_CIRC_L)
-    {
-      if (counter_test<2000)
-      {
-        TEST_distances[counter_test]=dist_us_sensor_central;
-        TEST_pulses[counter_test++ ]=(unsigned int)(0x00FF & temp_encIZQ);
+    if (ESTADO == EST_TEST_CIRC_L) {
+      if (counter_test < 2000) {
+        TEST_distances[counter_test] = dist_us_sensor_central;
+        TEST_pulses[counter_test++ ] = (unsigned int) (0x00FF & temp_encIZQ);
       }
     }
 
-/*  Serial.print(" pulsosDER: ");
-  Serial.print(pulsesDER+encoderDER);
-  Serial.print(" pulsosIZQ: ");
-  Serial.print(pulsesIZQ+encoderIZQ);
-  */
-  if (Radios_relation!=0)
-    if (ESTADO==EST_RIGHT_FASTER)
-      encoder=(int)(KKI*(float)temp_encIZQ-(float)temp_encDER*Radios_relation+0.499999);
+  if (radii_relation)
+    if (ESTADO == EST_RIGHT_FASTER)
+      encoder=(int) (KKI * (float) temp_encIZQ - (float) temp_encDER * radii_relation + 0.499999);
     else
-      encoder=(int)((float)temp_encDER-(float)KKI*(float)temp_encIZQ*Radios_relation+0.499999);
+      encoder=(int) ((float) temp_encDER - (float) KKI * (float) temp_encIZQ * radii_relation + 0.499999);
   else
-    encoder=0;
-/*
-  Serial.print(" RR ");
-  Serial.print(Radios_relation);
-
-  if (encoder > 0)
-  {
-    Serial.print("  +");
-    Serial.print(encoder);
-  }
-  else
-  {
-    Serial.print("  -");
-    Serial.print(-encoder);
-  }
-*/
+    encoder = 0;
 
   error = encoder_ant - encoder;
   encoder_ant = encoder;
+
   // Implement PID (just PD)
-  // Right wheel speed is updated
-  // If it is not breaking at the end of the movement
-  if (breaking_period==0)
-  {
+  // Right wheel speed is updated if it is not braking at the end of the movement
+  if (breaking_period == 0) {
     velr += (encoder * kp - error * kd);
 
-    // Speeds are normalized in order to work
-    // at maximum speed
+    // Speeds are normalized in order to work at maximum speed
     speed_normalization();
   }
 
-  // Write in PWM the speeds for each wheel
-  if (velr==0)
-  {
+  // Write, as PWM duty cycles, the speeds for each wheel
+  if (velr == 0) {
     digitalWrite(MOT_R_A_PIN, LOW);
     digitalWrite(MOT_R_B_PIN, LOW);
     analogWrite(MOT_R_PWM_PIN, 0);
   }
-  else
-  {
-    if (dir_right == 2)
-    {
+  else {
+    if (dir_right == 2) {
     digitalWrite(MOT_R_A_PIN, HIGH);
     digitalWrite(MOT_R_B_PIN, LOW);
     analogWrite(MOT_R_PWM_PIN, velr);
@@ -620,116 +506,96 @@ void one_faster_dist()
     analogWrite(MOT_R_PWM_PIN, velr);
     }
   }
-  if (vell==0)
-  {
+  if (vell == 0) {
     digitalWrite(MOT_L_A_PIN, LOW);
     digitalWrite(MOT_L_B_PIN, LOW);
     analogWrite(MOT_L_PWM_PIN, 255);
   }
-  else
-  {
-    if (dir_left == 2)
-    {
+  else {
+    if (dir_left == 2) {
     digitalWrite(MOT_L_A_PIN, LOW);
     digitalWrite(MOT_L_B_PIN, HIGH);
     analogWrite(MOT_L_PWM_PIN, vell);
     }
-    else
-    {
+    else {
     digitalWrite(MOT_L_A_PIN, HIGH);
     digitalWrite(MOT_L_B_PIN, LOW);
     analogWrite(MOT_L_PWM_PIN, vell);
     }
   }
-}  // fin de one_faster_dist()
+}  // End of one_faster_dist()
 
 
-//////////////////////////////////////////////////
-//  DISP_GLOBAL_POS
-//////////////////////////////////////////////////
-void disp_global_pos()
-{
+///////////////////////
+//  DISP_GLOBAL_POS  //
+///////////////////////
+void disp_global_pos() {
         Serial.println(" ");
         Serial.print(" X: ");
-        Serial.print((int)X);
+        Serial.print((int) X);
         Serial.print(" Y: ");
-        Serial.print((int)Y);
+        Serial.print((int) Y);
         Serial.print(" Theta: (rad)");
         Serial.print(Theta);
         Serial.print(" Theta: (degrees)");
-        Serial.println(Theta*57.29);
-}
-//////////////////////////////////////////////////
-//  UPDATE GLOBAL POSITIONS
-//
-//  Update the X,Y and orientation of the robot
-//  using the enoderIZQ and encoderDER
-//////////////////////////////////////////////////
-void update_global_positions()
-{
-  float s,sl,sr;
-  unsigned int temp_encDER,temp_encIZQ;
+        Serial.println(Theta * 57.29);
+}  // End of disp_global_pos()
 
-  temp_encDER=encoderDER;
-  temp_encIZQ=encoderIZQ;
-  sl=mmperpulse*KKI*(temp_encIZQ-aux_encoderIZQ);
-  sr=mmperpulse*(temp_encDER-aux_encoderDER);
-  aux_encoderDER=temp_encDER;
-  aux_encoderIZQ=temp_encIZQ;
 
-/*  Serial.print(" sl ");
-  Serial.print(sl);
-  Serial.print(" sr ");
-  Serial.print(sr);
-*/
-  if (dir_right==0)
-    sr=-sr;
-  if (dir_left==0)
-    sl=-sl;
-  Theta+=(sr-sl)/WHEEL_DIST;
-  s=(sr+sl)/2;
+/////////////////////////////////////////////////////////////////////
+//                  UPDATE GLOBAL POSITIONS                        //
+//  Update the X position,Y position and orientation of the robot  //
+//      using the enoderIZQ and encoderDER received pulses.        //
+/////////////////////////////////////////////////////////////////////
+void update_global_positions() {
+  float s, sl, sr;
+  unsigned int temp_encDER, temp_encIZQ;
 
-  X=X+s*cos(Theta);
-  Y=Y+s*sin(Theta);
-}  // fin de update_global_positions()
+  temp_encDER = encoderDER;
+  temp_encIZQ = encoderIZQ;
+  sl = mmperpulse * KKI * (temp_encIZQ - aux_encoderIZQ);
+  sr = mmperpulse * (temp_encDER - aux_encoderDER);
+  aux_encoderDER = temp_encDER;
+  aux_encoderIZQ = temp_encIZQ;
 
-//////////////////////////////////////////////////
-//  DEP:
-// This function is used for depuration
-//
-//////////////////////////////////////////////////
-void dep()
-{
+  if (dir_right == 0)
+    sr = -sr;
+  if (dir_left == 0)
+    sl = -sl;
+  Theta += (sr - sl) / WHEEL_DIST;
+  s = (sr + sl) / 2;
+
+  X += s * cos(Theta);
+  Y += s * sin(Theta);
+}  // End of update_global_positions()
+
+//////////////////////////////////////////
+//                  DEP                 //  
+// This function is used for debugging  //
+//////////////////////////////////////////
+void dep() {
   Serial.print(" VR: ");
   Serial.print(velr);
   Serial.print(" VL: ");
   Serial.print(vell);
 
-  if (encoder > 0)
-  {
+  if (encoder > 0) {
     Serial.print("  +");
     Serial.print(encoder);
   }
-  else
-  {
+  else {
     Serial.print("  -");
     Serial.print(-encoder);
   }
-     if (error > 0)
-      {
-        Serial.print("    Error: +");
-        Serial.print(error);
-      }
-      else
-      {
-        Serial.print("    Error: -");
-        Serial.print(-error);
-      }
 
-  //Serial.print(" pulsosDER: ");
-  //Serial.print(pulsesDER);
-  //Serial.print(" pulsosIZQ: ");
-  //Serial.print(pulsesIZQ);
+  if (error > 0) {
+    Serial.print("    Error: +");
+    Serial.print(error);
+  }
+  else {
+    Serial.print("    Error: -");
+    Serial.print(-error);
+  }
 
   Serial.print(" encoderDER: ");
   Serial.print(encoderDER);
@@ -739,61 +605,31 @@ void dep()
   Serial.print(ignored_left);
   Serial.print(" Igr_DER: ");
   Serial.println(ignored_right);
-  //Serial.println(encoderIZQ);
-/*
-  Serial.print(" Theta ");
-  Serial.print(Theta*180/3.14);
-  Serial.print(" Grados ");
+}  // End of dep()
 
-  Serial.print(" Theta_Max ");
-  Serial.print(theta_max*180/3.14);
-  Serial.println(" Grados ");
-
-  Serial.print("  ");
-  if (ESTADO==EST_RIGHT_FASTER)
-  {
-    Serial.print(" Rel: ");
-    Serial.print(100*(pulsesIZQ+encoderIZQ)/(pulsesDER+encoderDER));
-  }
-  else
-  {
-    if (ESTADO==EST_LEFT_FASTER)
-    {
-      Serial.print(" Rel: ");
-      Serial.print(100*(pulsesDER+encoderDER)/(pulsesIZQ+encoderIZQ));
-    }
-  }
-  */
-}  // fin de dep()
-
-//////////////////////////////////////////////////
-//   short int leer_numero()
-//////////////////////////////////////////////////
-short int read_number(int numero)
-{
-  char velocidad[5];
+///////////////////////////////////////////////////////////////
+//                      READ_NUMBER                          //
+//  Read a number from the serial port with <number> digits  //
+///////////////////////////////////////////////////////////////
+short int read_number(int number) {
+  char speed[5];
 
   // Wait to be sure the bytes have arrived
   delay(5);
-  if (Serial.available() > (numero-1))
-  {
-    Serial.readBytes(velocidad,numero);
-    velocidad[numero]=0;
-    return ((unsigned int)atoi(velocidad));
-  }
-  else
-  {
-    CODE_ERROR=NO_NUMBER;
-    return(0);
-  }
-}  // end of read_number
 
-//////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////
+  if (Serial.available() > number- 1) {
+    Serial.readBytes(speed, n_digits);
+    speed[n_digits] = '\0';  // Append a NULL character to terminate the string! Not needed if initialized with char speed[5] = {0}...
+    return (unsigned int) atoi(speed);
+  }
+  else {
+    ERROR_CODE = NO_NUMBER;
+    return 0;
+  }
+}  // End of read_number()
+
 
 void parse_input(void) {
-  //String incoming_params = String(Serial.readStringUntil('X'))
   unsigned char incoming_byte = '\0', incoming_number[N_DIGS] = {'\0'};
   int i = 0;
   while (Serial.available() > 0) {
@@ -809,7 +645,7 @@ void parse_input(void) {
     }
   }
   return;
-}
+}  // End of parse_input()
 
 void update_param(char* number, char parameter) {
   switch (parameter) {
@@ -845,7 +681,7 @@ void update_param(char* number, char parameter) {
       Serial.println("ERROR!");
   }
   return;
-}
+}  // End of update_param()
 
 void analizar_orden()
 {
@@ -890,7 +726,7 @@ void analizar_orden()
       Serial.println(num);
       if (num<0 || num>999)
       {
-        CODE_ERROR=RR_OUT_RANGE;
+        ERROR_CODE=RR_OUT_RANGE;
         break;
       }
       // Is mandatory num==0 for circular test just to avoid error, so the code for test is:
@@ -899,10 +735,10 @@ void analizar_orden()
       if (orden[0]==0x43 || orden[0]==0x44)
         if (num!=0)
         {
-          CODE_ERROR=RR_OUT_RANGE;
+          ERROR_CODE=RR_OUT_RANGE;
           break;
         }
-      Radios_relation=(float)num/999;
+      radii_relation=(float)num/999;
 
       // Command is "0XXX YYYY" YYYY is a 4 bytes number indicating the distance
       // that should move the faster wheel
@@ -912,7 +748,7 @@ void analizar_orden()
       num=read_number(4);
       if (num<0 || num>9999)
       {
-        CODE_ERROR=OUT_RANGE;
+        ERROR_CODE=OUT_RANGE;
         break;
       }
 
@@ -930,7 +766,7 @@ void analizar_orden()
             ESTADO=EST_RIGHT_FASTER;
             dir_right=1;
             dir_left=1;
-            SPEED_INI_L=(int)((float)SPEED_INI_R*Radios_relation*0.8);
+            SPEED_INI_L=(int)((float)SPEED_INI_R*radii_relation*0.8);
             move_motors();
           }
           else
@@ -939,7 +775,7 @@ void analizar_orden()
               ESTADO=EST_LEFT_FASTER;
               dir_right=1;
               dir_left=1;
-              SPEED_INI_R=(int)((float)SPEED_INI_L*Radios_relation*0.8);
+              SPEED_INI_R=(int)((float)SPEED_INI_L*radii_relation*0.8);
               move_motors();
             }
             else
@@ -948,7 +784,7 @@ void analizar_orden()
                 ESTADO=EST_TEST_CIRC_R;
                 dir_right=1;
                 dir_left=1;
-                SPEED_INI_L=(int)((float)SPEED_INI_R*Radios_relation*0.8);
+                SPEED_INI_L=(int)((float)SPEED_INI_R*radii_relation*0.8);
                 move_motors();
               }
               else
@@ -957,7 +793,7 @@ void analizar_orden()
                   ESTADO=EST_TEST_CIRC_L;
                   dir_right=1;
                   dir_left=1;
-                  SPEED_INI_R=(int)((float)SPEED_INI_L*Radios_relation*0.8);
+                  SPEED_INI_R=(int)((float)SPEED_INI_L*radii_relation*0.8);
                   move_motors();
                 }
                 else
@@ -966,7 +802,7 @@ void analizar_orden()
                     ESTADO=EST_RIGHT_FASTER;
                     dir_right=2;
                     dir_left=0;
-                    SPEED_INI_L=(int)((float)SPEED_INI_R*Radios_relation*0.8);
+                    SPEED_INI_L=(int)((float)SPEED_INI_R*radii_relation*0.8);
                     move_motors();
                   }
                   else
@@ -975,12 +811,12 @@ void analizar_orden()
                       ESTADO=EST_LEFT_FASTER;
                       dir_right=0;
                       dir_left=2;
-                      SPEED_INI_R=(int)((float)SPEED_INI_L*Radios_relation*0.8);
+                      SPEED_INI_R=(int)((float)SPEED_INI_L*radii_relation*0.8);
                       move_motors();
                     }
         }
         else
-          CODE_ERROR=OUT_RANGE;
+          ERROR_CODE=OUT_RANGE;
       break;
 
     // '2'  rotate unclockwise respect to the wheel axis center
@@ -992,7 +828,7 @@ void analizar_orden()
 
       counter_test=0;
 
-      Radios_relation=1;
+      radii_relation=1;
       // Command is "3XXX" XXX is a 3 bytes number indicating the rotation in degrees.
       num=read_number(3);
 
@@ -1022,7 +858,7 @@ void analizar_orden()
       }  // if (num!=0 ...
       else
       {
-        CODE_ERROR=OUT_RANGE;
+        ERROR_CODE=OUT_RANGE;
       }
       break;
       // Move forward
@@ -1045,7 +881,7 @@ void analizar_orden()
     case   0x37: //'7'
       SPEED_INI_R=255;
       SPEED_INI_L=255;
-      Radios_relation=1;
+      radii_relation=1;
       num=read_number(4);
 //      Serial.print("  NUM: ");
 //      Serial.println(num);
@@ -1067,10 +903,10 @@ void analizar_orden()
             }
             else
             {
-              CODE_ERROR=SPEED_OUT_RANGE;
+              ERROR_CODE=SPEED_OUT_RANGE;
             }
           }
-          if (CODE_ERROR==NO_ERROR)
+          if (ERROR_CODE==NO_ERROR)
           {
             ESTADO=EST_MOV_STRAITGH;
             if (orden[0]==0x34 || orden[0]==0x36)
@@ -1087,11 +923,11 @@ void analizar_orden()
           }
         }
         else
-          CODE_ERROR=INERTIA_LIMIT_ERROR;
+          ERROR_CODE=INERTIA_LIMIT_ERROR;
       }
       else
       {
-        CODE_ERROR=OUT_RANGE;
+        ERROR_CODE=OUT_RANGE;
       }
       break;
 
@@ -1180,7 +1016,7 @@ void analizar_orden()
     // The error is sent back by adding 0x30 to the error code
     case 0x45: //'E'
       Serial.write(0x45);  // 'E'
-      Serial.write(0x30+CODE_ERROR);
+      Serial.write(0x30+ERROR_CODE);
       Serial.println("");
       break;
 
@@ -1202,7 +1038,7 @@ void analizar_orden()
       parse_input();
       break;
     default:
-      CODE_ERROR=NO_AVAILABLE;
+      ERROR_CODE=NO_AVAILABLE;
     break;
   }
 }  // end of analizar_orden()
@@ -1264,7 +1100,7 @@ void loop()
     // Every time a command is going to be reveived the error is reseted,
     // if it is not asking for error code.
     if (orden[0]!='E')
-        CODE_ERROR=NO_ERROR;
+        ERROR_CODE=NO_ERROR;
 
     analizar_orden();     //Llama a la funcion "analizar_cadena".
     // Clean the buffer
