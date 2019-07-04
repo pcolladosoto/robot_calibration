@@ -37,9 +37,9 @@ REAL_PULSES_PER_TURN_R = -1 #Computed later on
 REAL_PULSES_PER_TURN_BOTH = -1 #Computed later on
 
 #Errors
-ERROR_MESSAGES = ["PORT NOT FOUND, ABORTING!\n",
-                  "SIGNAL LENGTHS ARE DIFFERENT, ABORTING!\n",
-                  "PORT NOT REACHABLE\n"]
+ERROR_MESSAGES = ["PORT NOT FOUND, ABORTING!",
+                  "SIGNAL LENGTHS ARE DIFFERENT, ABORTING!",
+                  "PORT NOT REACHABLE"]
 PORT_NOT_FOUND = 0
 ERROR_SIGNAL_TREATMENT = 1
 PORT_NOT_REACHABLE = 2
@@ -54,6 +54,9 @@ GO_STRAIGHT_1M = '41000' #Used for debugging!
 TURN_L_LITTLE = '2020'
 TURN_R_LITTLE = '3020'
 
+#Program switches
+VERVOSE = True
+
 def find_N_open_serial_port():
     #Expand all the paths in the argument. [A-Za-z] matches any letter both upper and lower case. Its a RegExpr
     #glob.glob("/dev/tty[A-Za-z]*")
@@ -62,17 +65,17 @@ def find_N_open_serial_port():
 
     #Try to open each ttyUSBX port. If it's not being used, throw the exception and continue
     for path in candidates:
-        print("Checking: %s\n" % (path), end="")
+        print("Checking: %s" % (path))
         try:
             port = serial.Serial(path, baudrate = ARDUINO_BAUDRATE, timeout = None)
             if check_if_arduino():
-                print("Found Arduino at port %s\n" % (port.name), end="")
+                print("Found Arduino at port %s" % (port.name))
                 time.sleep(1)
                 return port
             else:
                 port.close()
         except(OSError, serial.SerialException):
-            print("%s" % (ERROR_MESSAGES[PORT_NOT_REACHABLE]), end="")
+            print("%s" % (ERROR_MESSAGES[PORT_NOT_REACHABLE]))
             pass
 
     #return open_ports
@@ -102,14 +105,13 @@ def get_data(port):
 def get_straight_data(port):
 
     matches = findall(r"\d+", port.readline().decode())
-    print(matches)
     return int(matches[4])
 
 def print_file(data):
     data = open("data.txt", "r")
 
     for line in data:
-        print(line, end = "")
+        print(line)
 
     data.close()
 
@@ -123,26 +125,26 @@ def execute_command(command, port):
         port.write(command.encode())
 
     elif command == "Get data":
-        print("Let's go get that data!\n", end="")
+        print("Let's go get that data!")
         return get_data(port)
 
     elif command == "Turn L stopped":
-        print("Turning with the L wheel stopped!\n", end="")
+        print("Turning with the L wheel stopped!")
         port.write(TURN_L_WHEEL_STOPPED.encode())
         port.reset_input_buffer()
 
     elif command == "Turn R stopped":
-        print("Turning with the R wheel stopped!\n", end="")
+        print("Turning with the R wheel stopped!")
         port.write(TURN_R_WHEEL_STOPPED.encode())
         port.reset_input_buffer()
 
     elif command == "Turn both wheels":
-        print("Turning with both wheels!\n", end="")
+        print("Turning with both wheels!")
         port.write(TURN_BOTH_WHEELS.encode())
         port.reset_input_buffer()
 
     elif command == "Advance 3 m":
-        print("Going straight for 3 m!\n", end="")
+        print("Going straight for 3 m!")
         port.write(GO_STRAIGHT_3M.encode())
         port.reset_input_buffer()
         str_p = get_straight_data(port)
@@ -165,7 +167,7 @@ def execute_command(command, port):
 
 def initial_data(port):
 
-    global REDUCING_FACTOR, ENC_PULSES_PER_REV, NOM_DIAMETER, WHEELBASE, N_TURNS, PULSES_PER_REV, MM_TO_PULSES, ESTIMATED_PULSES_PER_TURN, TURN_R_WHEEL_STOPPED, TURN_L_WHEEL_STOPPED, N_REPS
+    global REDUCING_FACTOR, ENC_PULSES_PER_REV, NOM_DIAMETER, WHEELBASE, N_TURNS, PULSES_PER_REV, MM_TO_PULSES, ESTIMATED_PULSES_PER_TURN, TURN_R_WHEEL_STOPPED, TURN_L_WHEEL_STOPPED, N_REPS, VERVOSE
 
     user_input = "X"
 
@@ -193,6 +195,9 @@ def initial_data(port):
     user_input = input("Encoder pulses per revolution: ")
     if user_input != '':
         ENC_PULSES_PER_REV = float(user_input)
+    user_input = input("Do you want verbose (printing data) operation? (Y/n) -> ")
+        if user_input == "n":
+            VERVOSE = False
 
     PULSES_PER_REV = REDUCING_FACTOR * ENC_PULSES_PER_REV
     MM_TO_PULSES = (pi * NOM_DIAMETER) / PULSES_PER_REV
@@ -225,20 +230,12 @@ def initial_data(port):
 def print_updated_data():
     cont = 'n'
 
-    print("Number of turns for the calibration: %d\n" % (N_TURNS), end="")
-    print("Number of repetitions for the calibration: %d\n" % (N_REPS), end = "")
-    #print("Arduino baudrate: %d\n" % (ARDUINO_BAUDRATE), end="")
-    #print("Reducing factor: %g\n" % (REDUCING_FACTOR), end="")
-    #print("Encoder pulses per rev: %d\n" % (ENC_PULSES_PER_REV), end="")
-    print("Nominal diameter: %g\n" % (NOM_DIAMETER), end="")
-    print("Wheelbase: %g\n" % (WHEELBASE), end="")
-    #print("Diameter error (ED): %g\n" % (ED), end="")
-    #print("Scaling error (ES): %g\n" % (ES), end="")
-    #print("K factor: %g\n" % (K), end="")
-    #print("Pulses per rev: %g\n" % (PULSES_PER_REV), end="")
-    print("Mm to pulses conversion: %g\n" % (MM_TO_PULSES), end="")
-    print("Est. pulses per turn: %g\n" % (ESTIMATED_PULSES_PER_TURN), end="")
-    #print("Turn L stopped command: %s\n" % (TURN_L_WHEEL_STOPPED), end="")
+    print("Number of turns for the calibration: %d" % (N_TURNS))
+    print("Number of repetitions for the calibration: %d" % (N_REPS))
+    print("Nominal diameter: %g" % (NOM_DIAMETER))
+    print("Wheelbase: %g" % (WHEELBASE))
+    print("Mm to pulses conversion: %g" % (MM_TO_PULSES))
+    print("Est. pulses per turn: %g" % (ESTIMATED_PULSES_PER_TURN))
 
     while cont != 'Y':
         cont = input("Proceed with these results? (Y/n) -> ")
@@ -253,9 +250,9 @@ def user_tweaks(port, mode):
         while ord != '':
             ord = input(terminal_colors.cyan + "Press ENTER to continue: " + terminal_colors.end_color)
     else:
-        print("Use the A and D keys + ENTER to correct the orientation of the robot.\n", end = "")
-        print("You can also move the robot manually, but it's kind of heavy...\n", end = "")
-        print("Press ENTER when finished.", end = "")
+        print("Use the A and D keys + ENTER to correct the orientation of the robot.")
+        print("You can also move the robot manually, but it's kind of heavy...")
+        print("Press ENTER when finished.")
 
         while ord != '':
             execute_command(ord.upper(), port)
@@ -321,9 +318,9 @@ def find_maximum(convoluted_signal, mode):
         lower_limit = int(length_convoluted / 2 - length_convoluted / (2 * N_TURNS) - (ESTIMATED_PULSES_PER_TURN / 2) * 0.1)
         upper_limit = int(length_convoluted / 2 - length_convoluted / (2 * N_TURNS) + (ESTIMATED_PULSES_PER_TURN / 2) * 0.1)
 
-    print("Lower limit: %d\n" % (lower_limit), end="")
-    print("Upper limit: %d\n" % (upper_limit), end="")
-    print("Absolute MAX at: %d\n" % (length_convoluted / 2), end = "")
+    print("Lower limit: %d" % (lower_limit))
+    print("Upper limit: %d" % (upper_limit))
+    print("Absolute MAX at: %d" % (length_convoluted / 2))
 
     current_max = convoluted_signal[lower_limit]
     current_max_index = lower_limit
@@ -333,26 +330,23 @@ def find_maximum(convoluted_signal, mode):
             current_max = convoluted_signal[index]
             current_max_index = index
 
-    print("Max at: %d\n" % (current_max_index), end = "")
+    print("Max at: %d" % (current_max_index))
 
     return length_convoluted / 2 + 0.5 - current_max_index #It's equivalent to subtracting the index from the signal length!
 
 def show_signal(input_signal):
-    plotter.plot(input_signal)
     plotter.ylabel("Distance (cm * cm)")
-    plotter.show()
+    plotter.plot(input_signal)
+    #plotter.show()
+    time.sleep(3)
+    plotter.close()
 
     return
 
 def main():
     global REAL_PULSES_PER_TURN_R, REAL_PULSES_PER_TURN_L, REAL_PULSES_PER_TURN_BOTH, K, ED, ES, DR, MM_TO_PULSES, WHEELBASE
 
-    p_array = []
-    d_array = []
-
-    L_PULSES = []
-    R_PULSES = []
-    B_PULSES = []
+    p_array, d_array, L_PULSES, R_PULSES, B_PULSES = [], [], [], [], []
 
     print(terminal_colors.lime + "Beginning calibration!" + terminal_colors.end_color)
 
@@ -362,11 +356,11 @@ def main():
     print_updated_data()
 
     for i in range(N_REPS):
-        if input("Input S to skip the test: ") == "S":
-            compute = False
-            continue
-        p_array = []
-        d_array = []
+        if i = 0:
+            if input("Input S to skip the test: ") == "S":
+                compute = False
+                continue
+        p_array, d_array = [], []
         execute_command("Turn L stopped", arduino)
         data_file = execute_command("Get data", arduino)
         read_N_parse(data_file, p_array, d_array)
@@ -374,22 +368,22 @@ def main():
         show_signal(baked_signal)
         og_signal = baked_signal.copy()
         baked_signal.reverse()
-        show_signal(baked_signal)
         convoluted_signal = convolution_time(og_signal, baked_signal)
         show_signal(convoluted_signal)
         L_PULSES.append(find_maximum(convoluted_signal, "Stopped"))
-        print("Computed pulses: %g\n" % (L_PULSES[i]), end = "")
+        if VERVOSE:
+            print("Computed pulses: %g" % (L_PULSES[i]))
 
     user_tweaks(arduino, "Continue?")
 
     compute = True
 
     for i in range(N_REPS):
-        if input("Input S to skip the test: ") == "S":
-            compute = False
-            continue
-        p_array = []
-        d_array = []
+        if i == 0:
+            if input("Input S to skip the test: ") == "S":
+                compute = False
+                continue
+        p_array, d_array = [], []
         execute_command("Turn R stopped", arduino)
         data_file = execute_command("Get data", arduino)
         read_N_parse(data_file, p_array, d_array)
@@ -397,22 +391,22 @@ def main():
         show_signal(baked_signal)
         og_signal = baked_signal.copy()
         baked_signal.reverse()
-        show_signal(baked_signal)
         convoluted_signal = convolution_time(og_signal, baked_signal)
         show_signal(convoluted_signal)
         R_PULSES.append(find_maximum(convoluted_signal, "Stopped"))
-        print("Computed pulses: %g\n" % (R_PULSES[i]), end = "")
+        if VERVOSE:
+            print("Computed pulses: %g" % (R_PULSES[i]))
 
     user_tweaks(arduino, "Continue?")
 
     compute = True
 
     for i in range(N_REPS):
-        if input("Input S to skip the test: ") == "S":
-            compute = False
-            continue
-        p_array = []
-        d_array = []
+        if i == 0:
+            if input("Input S to skip the test: ") == "S":
+                compute = False
+                continue
+        p_array, d_array = [], []
         execute_command("Turn both wheels", arduino)
         data_file = execute_command("Get data", arduino)
         read_N_parse(data_file, p_array, d_array)
@@ -420,54 +414,51 @@ def main():
         show_signal(baked_signal)
         og_signal = baked_signal.copy()
         baked_signal.reverse()
-        show_signal(baked_signal)
         convoluted_signal = convolution_time(og_signal, baked_signal)
         show_signal(convoluted_signal)
         B_PULSES.append(find_maximum(convoluted_signal, "Both"))
-        print("Computed pulses: %g\n" % (B_PULSES[i]), end = "")
+        print("Computed pulses: %g" % (B_PULSES[i]))
 
     if compute:
         REAL_PULSES_PER_TURN_L = sum(L_PULSES) / len(L_PULSES)
         REAL_PULSES_PER_TURN_R = sum(R_PULSES) / len(R_PULSES)
         REAL_PULSES_PER_TURN_BOTH = sum(B_PULSES) / len(B_PULSES)
 
-        print(terminal_colors.pink + "Left pulses: %g\n" % (REAL_PULSES_PER_TURN_L), end = "")
-        print("Right pulses: %g\n" % (REAL_PULSES_PER_TURN_R), end = "")
-        print("Both pulses: %g\n" % (REAL_PULSES_PER_TURN_BOTH), end = "")
+        print(terminal_colors.pink + "Left pulses: %g" % (REAL_PULSES_PER_TURN_L))
+        print("Right pulses: %g" % (REAL_PULSES_PER_TURN_R))
+        print("Both pulses: %g" % (REAL_PULSES_PER_TURN_BOTH))
 
         K = 2 * REAL_PULSES_PER_TURN_BOTH / REAL_PULSES_PER_TURN_R
-        print("K value: %g\n" % (K), end = "")
+        print("K value: %g" % (K))
 
         ED = REAL_PULSES_PER_TURN_R / REAL_PULSES_PER_TURN_L
-        print("Diameter error (ED): %g\n" % (ED) + terminal_colors.end_color, end = "")
+        print("Diameter error (ED): %g" % (ED) + terminal_colors.end_color)
 
     user_tweaks(arduino, "Continue?")
 
-    print("Hey!")
-
     straight_pulses = execute_command("Advance 3 m", arduino)
 
-    print(terminal_colors.pink + "Recorded pulses: %d\n" % (straight_pulses) + terminal_colors.end_color, end = "")
+    print(terminal_colors.pink + "Recorded pulses: %d" % (straight_pulses) + terminal_colors.end_color)
 
     real_distance = float(input("Please input the traversed distance in mm: "))
 
     MM_TO_PULSES = real_distance / straight_pulses
-    print(terminal_colors.pink + "MM -> Pulses conversion factor: %g\n" % (MM_TO_PULSES), end = "")
+    print(terminal_colors.pink + "MM -> Pulses conversion factor: %g" % (MM_TO_PULSES))
 
     if compute:
         WHEELBASE = REAL_PULSES_PER_TURN_R * MM_TO_PULSES * K / (2 * pi)
-        print("Adjusted wheelbase: %g mm\n" % (WHEELBASE))
+        print("Adjusted wheelbase: %g mm" % (WHEELBASE))
 
         DR = MM_TO_PULSES * PULSES_PER_REV / pi
-        print("Real right wheel diameter: %g\n" % (DR), end = "")
+        print("Real right wheel diameter: %g" % (DR))
 
         ES = (DR / NOM_DIAMETER) * ((1 + ED) / 2)
-        print("Scaling error (ES): %g\n\033[0m" % (ES), end = "")
+        print("Scaling error (ES): %g\033[0m" % (ES))
 
 
     execute_command("S" + str(WHEELBASE) + "w" + str(ED) + "D" + str(MM_TO_PULSES) + "M" + "1R", arduino) #1R resets the correction factor!
 
-    print(terminal_colors.lime + "Calibration finished!\n" + terminal_colors.end_color, end = "")
+    print(terminal_colors.lime + "Calibration finished!" + terminal_colors.end_color)
 
     exit()
 
