@@ -218,7 +218,7 @@ def initial_data(port):
 
     ESTIMATED_PULSES_PER_TURN = (2 * pi * WHEELBASE) / (pi * NOM_DIAMETER) * PULSES_PER_REV
 
-    execute_command("S" + str(WHEELBASE) + "W" + str(MM_TO_PULSES) + "M" + str(N_TURNS) + "R", port)
+    execute_command("S" + str(WHEELBASE) + "W" + str(MM_TO_PULSES) + "M" + str(N_TURNS) + "R" + "1D", port)
 
     return
 

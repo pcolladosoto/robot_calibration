@@ -6,14 +6,13 @@ from math import pi, log10
 from matplotlib import pyplot as plotter
 
 #Colors
- terminal_colors = {:
+terminal_colors = {
     "end_color": "\033[0m",
     "lime": "\033[38;2;0;255;0m",
     "red": "\033[38;2;255;0;0m",
     "cyan": "\033[38;2;0;255;255m",
     "pink": "\033[38;2;255;105;180m"
 }
-
 
 #Constants
 CONSTANTS = {
@@ -39,7 +38,6 @@ CONSTANTS = {
     "SHOW_TIME": 3
 }
 
-
 #Errors
 ERROR_MESSAGES = {
     "PORT_NOT_FOUND": "PORT NOT FOUND, ABORTING!",
@@ -48,19 +46,19 @@ ERROR_MESSAGES = {
 }
 #Commands
 COMMANDS = {
-    "GET_DATA": 'F'
-    "TURN_L_WHEEL_STOPPED": 'C0002689'
-    "TURN_R_WHEEL_STOPPED": 'D0002689'
-    "TURN_BOTH_WHEELS": '3360'
-    "GO_STRAIGHT_3M": '63000220'
-    "GO_STRAIGHT_1M": '41000'
-    "TURN_L_LITTLE": '2020'
+    "GET_DATA": 'F',
+    "TURN_L_WHEEL_STOPPED": 'C0002689',
+    "TURN_R_WHEEL_STOPPED": 'D0002689',
+    "TURN_BOTH_WHEELS": '3360',
+    "GO_STRAIGHT_3M": '63000220',
+    "GO_STRAIGHT_1M": '41000',
+    "TURN_L_LITTLE": '2020',
     "TURN_R_LITTLE": '3020'
 }
 
 #Program switches
 SWITCHES = {
-    "VERVOSE" = True,
+    "VERBOSE": True,
     "DBG": False,
     "COMPUTE_L_STOPPED": True,
     "COMPUTE_R_STOPPED": True,
@@ -74,28 +72,19 @@ SWITCHES = {
 def find_N_open_serial_port():
     candidates = glob.glob('/dev/tty[A-Za-z]*')
     for path in candidates:
-        print("Checking: %s" % (path))
         try:
             port = serial.Serial(path, baudrate = CONSTANTS["ARDUINO_BAUDRATE"], timeout = None)
-            if check_if_arduino():
+            if if "USB2.0-Serial-if00" in os.system("ls /dev/serial/by-id"):
                 print(terminal_colors["lime"] + "Found Arduino at port %s" % (port.name) + terminal_colors["end_color"])
                 time.sleep(1)
                 return port
             else:
                 port.close()
         except(OSError, serial.SerialException):
-            print("%s" % (ERROR_MESSAGES["PORT_NOT_REACHABLE"]))
             pass
 
     print(ERROR_MESSAGES["PORT_NOT_FOUND"])
     return exit()
-
-def check_if_arduino():
-    if os.system("ls /dev/serial/by-id > tmp") != 0 or not ('USB2.0-Serial-if00' in open('tmp', 'r').read()):
-        os.system("rm tmp")
-        return False
-    os.system("rm tmp")
-    return True
 
 def get_data(port):
     port.reset_input_buffer()
@@ -123,6 +112,7 @@ def execute_command(command, port):
         port.write(command.encode())
 
     elif command == "Get data":
+        print(terminal_colors["cyan"] + "Processing data..." + terminal_colors["end_color"])
         return get_data(port)
 
     elif command == "Turn L stopped":
@@ -189,16 +179,16 @@ def initial_data(port):
     if user_input != '':
         CONSTANTS["ENC_PULSES_PER_REV"] = float(user_input)
 
-    user_input = input("Do you want verbose (printing data) operation? (Y/n) -> ")
-    if user_input == "n":
-        SWITCHES["VERVOSE"] = False
-
     CONSTANTS["PULSES_PER_REV"] = CONSTANTS["REDUCING_FACTOR"] * CONSTANTS["ENC_PULSES_PER_REV"]
     CONSTANTS["MM_TO_PULSES"] = (pi * CONSTANTS["NOM_DIAMETER"]) / CONSTANTS["PULSES_PER_REV"]
 
     user_input = input("Wheelbase: ")
     if user_input != '':
         CONSTANTS["WHEELBASE"] = float(user_input)
+
+    user_input = input("Do you want verbose (printing data) operation? (Y/n) -> ")
+    if user_input == "n":
+        SWITCHES["VERBOSE"] = False
 
     circumference = CONSTANTS["N_TURNS"] * 2 * pi * CONSTANTS["WHEELBASE"] / 10
 
@@ -220,17 +210,19 @@ def initial_data(port):
 
     execute_command("S" + str(CONSTANTS["WHEELBASE"]) + "W" + str(CONSTANTS["MM_TO_PULSES"]) + "M" + str(CONSTANTS["N_TURNS"]) + "R", port)
 
-    return
+    return os.system("clear")
 
 def print_updated_data():
     cont = 'n'
 
-    print("Number of turns for the calibration: %d" % (CONSTANTS["N_TURNS"]))
-    print("Number of repetitions for the calibration: %d" % (CONSTANTS["N_REPS"]))
-    print("Nominal diameter: %g" % (CONSTANTS["NOM_DIAMETER"]))
-    print("Wheelbase: %g" % (CONSTANTS["WHEELBASE"]))
-    print("Mm to pulses conversion: %g" % (CONSTANTS["MM_TO_PULSES"]))
-    print("Est. pulses per turn: %g" % (CONSTANTS["ESTIMATED_PULSES_PER_TURN"]))
+    print(terminal_colors["lime"] + "The data we will procced with is:" + terminal_colors["end_color"])
+
+    print("\tNumber of turns for the calibration: %d" % (CONSTANTS["N_TURNS"]))
+    print("\tNumber of repetitions for the calibration: %d" % (CONSTANTS["N_REPS"]))
+    print("\tNominal diameter: %g" % (CONSTANTS["NOM_DIAMETER"]))
+    print("\tWheelbase: %g" % (CONSTANTS["WHEELBASE"]))
+    print("\tMm to pulses conversion: %g" % (CONSTANTS["MM_TO_PULSES"]))
+    print("\tEst. pulses per turn: %g" % (CONSTANTS["ESTIMATED_PULSES_PER_TURN"]))
 
     while cont != 'Y':
         cont = input("Proceed with these results? (Y/n) -> ")
@@ -258,7 +250,6 @@ def extract_data(string_to_parse, pulses_array, distances_array):
     distances_array.append(int(matches[1]))
 
 def populate_signal(pulses_array, distances_array):
-    show_signal(distances_array)
     populated_array = []
     index = 0
     i = 0
@@ -284,7 +275,6 @@ def convolution_time(original_signal, reversed_signal):
 def find_maximum(convoluted_signal, mode):
     length_convoluted = len(convoluted_signal)
     if mode == "Stopped":
-        print("Stopped mode")
         lower_limit = int(length_convoluted / 2 - length_convoluted / (2 * CONSTANTS["N_TURNS"]) - CONSTANTS["ESTIMATED_PULSES_PER_TURN"] * CONSTANTS["WINDOW_LIMITS"])
         upper_limit = int(length_convoluted / 2 - length_convoluted / (2 * CONSTANTS["N_TURNS"]) + CONSTANTS["ESTIMATED_PULSES_PER_TURN"] * CONSTANTS["WINDOW_LIMITS"])
     else:
@@ -299,21 +289,23 @@ def find_maximum(convoluted_signal, mode):
             current_max = convoluted_signal[index]
             current_max_index = index
 
-    if SWITCHES["VERVOSE"]:
-        print("Lower limit: %d" % (lower_limit))
-        print("Upper limit: %d" % (upper_limit))
-        print("Absolute MAX at: %d" % (length_convoluted / 2))
-        print("Max at: %d" % (current_max_index))
+    if SWITCHES["VERBOSE"]:
+        os.system("clear")
+        print(terminal_colors["pink"] + "Obtained results:" + terminal_colors["end_color"])
+        print("\tLower limit: %d" % (lower_limit))
+        print("\tUpper limit: %d" % (upper_limit))
+        print("\tAbsolute MAX at: %d" % (length_convoluted / 2))
+        print("\tMax at: %d" % (current_max_index))
 
     return length_convoluted / 2 + 0.5 - current_max_index #It's equivalent to subtracting the index from the signal length!
 
-def show_signal(input_signal):
-    plotter.ylabel("Distance (cm * cm)")
+def show_signal(input_signal, y_label, title):
+    plotter.ylabel(y_label)
+    plotter.xlabel("Pulses")
+    plotter.title(title)
     plotter.plot(input_signal)
-    #plotter.show()
-    time.sleep(CONSTANTS["SHOW_TIME"])
-    plotter.close()
-
+    plotter.show()
+    
     return
 
 def main():
@@ -340,7 +332,7 @@ def main():
 
     print(terminal_colors["lime"] + "Beginning phase 1: Turning with the left wheel stopped" + terminal_colors["end_color"])
 
-    for i in range(N_REPS):
+    for i in range(CONSTANTS["N_REPS"]):
         if i == 0:
             if input("Input S to skip the test: ") == "S":
                 SWITCHES["COMPUTE_L_STOPPED"] = False
@@ -349,21 +341,22 @@ def main():
         execute_command("Turn L stopped", arduino)
         data_file = execute_command("Get data", arduino)
         read_N_parse(data_file, p_array, d_array)
+        show_signal(d_array, "Distance [cm]", "L Stopped RAW Distances")
         baked_signal = populate_signal(p_array, d_array)
-        show_signal(baked_signal)
+        show_signal(baked_signal, "Distance [cm]", "L Stopped Populated Signal")
         og_signal = baked_signal.copy()
         baked_signal.reverse()
         convoluted_signal = convolution_time(og_signal, baked_signal)
-        show_signal(convoluted_signal)
+        show_signal(convoluted_signal, "Surface [cm * cm]", "L Stopped Convolution")
         L_PULSES.append(find_maximum(convoluted_signal, "Stopped"))
-        if SWITCHES["VERVOSE"]:
+        if SWITCHES["VERBOSE"]:
             print("Computed pulses: %g" % (L_PULSES[i]))
 
     user_tweaks("Continue?")
 
     print(terminal_colors["lime"] + "Beginning phase 2: Turning with the right wheel stopped" + terminal_colors["end_color"])
 
-    for i in range(N_REPS):
+    for i in range(CONSTANTS["N_REPS"]):
         if i == 0:
             if input("Input S to skip the test: ") == "S":
                 SWITCHES["COMPUTE_R_STOPPED"] = False
@@ -372,21 +365,22 @@ def main():
         execute_command("Turn R stopped", arduino)
         data_file = execute_command("Get data", arduino)
         read_N_parse(data_file, p_array, d_array)
+        show_signal(d_array, "Distance [cm]", "R Stopped RAW Distances")
         baked_signal = populate_signal(p_array, d_array)
-        show_signal(baked_signal)
+        show_signal(baked_signal, "Distance [cm]", "R Stopped Populated Signal")
         og_signal = baked_signal.copy()
         baked_signal.reverse()
         convoluted_signal = convolution_time(og_signal, baked_signal)
-        show_signal(convoluted_signal)
+        show_signal(convoluted_signal, "Surface [cm * cm]", "R Stopped Convolution")
         R_PULSES.append(find_maximum(convoluted_signal, "Stopped"))
-        if SWITCHES["VERVOSE"]:
+        if SWITCHES["VERBOSE"]:
             print("Computed pulses: %g" % (R_PULSES[i]))
 
     user_tweaks("Continue?")
 
     print(terminal_colors["lime"] + "Beginning phase 3: Turning with both wheels" + terminal_colors["end_color"])
 
-    for i in range(N_REPS):
+    for i in range(CONSTANTS["N_REPS"]):
         if i == 0:
             if input("Input S to skip the test: ") == "S":
                 SWITCHES["COMPUTE_BOTH"] = False
@@ -395,15 +389,18 @@ def main():
         execute_command("Turn both wheels", arduino)
         data_file = execute_command("Get data", arduino)
         read_N_parse(data_file, p_array, d_array)
+        show_signal(d_array, "Distance [cm]", "Both On RAW Distances")
         baked_signal = populate_signal(p_array, d_array)
-        show_signal(baked_signal)
+        show_signal(baked_signal, "Distance [cm]", "Both On Populated Signal")
         og_signal = baked_signal.copy()
         baked_signal.reverse()
         convoluted_signal = convolution_time(og_signal, baked_signal)
-        show_signal(convoluted_signal)
+        show_signal(convoluted_signal, "Surface [cm * cm]", "Both On Convolution")
         B_PULSES.append(find_maximum(convoluted_signal, "Both"))
         if SWITCHES["VERBOSE"]:
             print("Computed pulses: %g" % (B_PULSES[i]))
+
+    user_tweaks("Continue?")
 
     if SWITCHES["COMPUTE_L_STOPPED"]:
         CONSTANTS["REAL_PULSES_PER_TURN_L"] = sum(L_PULSES) / len(L_PULSES)
@@ -414,9 +411,9 @@ def main():
     if SWITCHES["COMPUTE_BOTH"]:
         CONSTANTS["REAL_PULSES_PER_TURN_BOTH"] = sum(B_PULSES) / len(B_PULSES)
 
-    print(terminal_colors.pink + "Left pulses: %g" % (REAL_PULSES_PER_TURN_L))
-    print("Right pulses: %g" % (REAL_PULSES_PER_TURN_R))
-    print("Both pulses: %g" % (REAL_PULSES_PER_TURN_BOTH))
+    print(terminal_colors["pink"] + "Left pulses: %g" % (CONSTANTS["REAL_PULSES_PER_TURN_L"]))
+    print("Right pulses: %g" % (CONSTANTS["REAL_PULSES_PER_TURN_R"]))
+    print("Both pulses: %g" % (CONSTANTS["REAL_PULSES_PER_TURN_BOTH"]))
 
     if SWITCHES["COMPUTE_R_STOPPED"]:
         if SWITCHES["COMPUTE_BOTH"]:
@@ -461,7 +458,7 @@ def main():
     user_input = input("Would you like a final summary of the computed data? (Y/n) -> ")
     if user_input == "Y":
         for key, value in CONSTANTS.items():
-            print (key, value)
+            print ("Constant: %s has a value of %g " % (key, value))
 
     print(terminal_colors["lime"] + "\nCalibration finished! Thanks for using our tool!" + terminal_colors["end_color"])
 
