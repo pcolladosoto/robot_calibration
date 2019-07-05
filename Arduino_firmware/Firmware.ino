@@ -344,7 +344,7 @@ int us_range(int TriggerPin, int EchoPin) {
    duration = pulseIn(EchoPin, HIGH, 10000);
 
    // Check this number
-   distanceCm = duration/58.2;  // Convert the distance to cm
+   distanceCm = duration / 58.2;  // Convert the distance to cm
 
    if (distanceCm == 0)
     return 0;
@@ -985,19 +985,17 @@ void loop() {
  while(1) {
     // Sequence to read the ultra-sound sensors. In each iteration one sensor is read. We must take into account that we get a
     // delay by reading the ultra-sound sensor...
-    if (us_sensor == 0) {
-      dist_us_sensor_central = us_range(F_US_TRIG, F_US_ECHO);
-      us_sensor = 1;
-    }
-    else
-      if (us_sensor == 1) {
-        dist_us_sensor_left = us_range(L_US_TRIG, L_US_ECHO);
-        us_sensor = 2;
-      }
-      else {
-        dist_us_sensor_right = us_range(R_US_TRIG, R_US_ECHO);
-        us_sensor = 0;
-        }
+  if (us_sensor == 0)
+  dist_us_sensor_central = us_range(F_US_TRIG, F_US_ECHO);
+
+  else if (us_sensor == 2)
+    dist_us_sensor_left = us_range(L_US_TRIG, L_US_ECHO);
+
+  else if (us_sensor == 4)
+    dist_us_sensor_right = us_range(R_US_TRIG, R_US_ECHO);
+
+  if (++us_sensor == 5)
+    us_sensor = 0;
 
   //  Read from the serial port if there is anything available
   if (Serial.available() > 0) {

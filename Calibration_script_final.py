@@ -1,5 +1,5 @@
 #Imports
-import glob, serial, os, sys, time
+import glob, serial, os, sys, time, signal
 from numpy import convolve
 from re import findall
 from math import pi, log10
@@ -68,13 +68,21 @@ SWITCHES = {
     "PHASES_12_DONE": False
 }
 
+def IRQ_setup():
+    signal.signal(signal.SIGINT, handler)
 
+    return
+
+def handler():
+    print(terminal_colors["red"] + "Closing on received interrupt!" + terminal_colors["end_color"])
+    exit()
+    
 def find_N_open_serial_port():
     candidates = glob.glob('/dev/tty[A-Za-z]*')
     for path in candidates:
         try:
             port = serial.Serial(path, baudrate = CONSTANTS["ARDUINO_BAUDRATE"], timeout = None)
-            if if "USB2.0-Serial-if00" in os.system("ls /dev/serial/by-id"):
+            if "USB2.0-Serial-if00" in os.system("ls /dev/serial/by-id"):
                 print(terminal_colors["lime"] + "Found Arduino at port %s" % (port.name) + terminal_colors["end_color"])
                 time.sleep(1)
                 return port
@@ -411,9 +419,10 @@ def main():
     if SWITCHES["COMPUTE_BOTH"]:
         CONSTANTS["REAL_PULSES_PER_TURN_BOTH"] = sum(B_PULSES) / len(B_PULSES)
 
-    print(terminal_colors["pink"] + "Left pulses: %g" % (CONSTANTS["REAL_PULSES_PER_TURN_L"]))
-    print("Right pulses: %g" % (CONSTANTS["REAL_PULSES_PER_TURN_R"]))
-    print("Both pulses: %g" % (CONSTANTS["REAL_PULSES_PER_TURN_BOTH"]))
+    print(terminal_colors["cyan"] + "Computed pulses per turn:" + terminal_colors["end_color"])
+    print(terminal_colors["pink"] + "\tLeft pulses: %g" % (CONSTANTS["REAL_PULSES_PER_TURN_L"]))
+    print("\tRight pulses: %g" % (CONSTANTS["REAL_PULSES_PER_TURN_R"]))
+    print("\tBoth pulses: %g" % (CONSTANTS["REAL_PULSES_PER_TURN_BOTH"]))
 
     if SWITCHES["COMPUTE_R_STOPPED"]:
         if SWITCHES["COMPUTE_BOTH"]:
@@ -423,7 +432,7 @@ def main():
         if SWITCHES["COMPUTE_L_STOPPED"]:
             SWITCHES["PHASES_12_DONE"] = True
             CONSTANTS["ED"] = CONSTANTS["REAL_PULSES_PER_TURN_R"] / CONSTANTS["REAL_PULSES_PER_TURN_L"]
-            print("Diameter error (ED): %g" % (CONSTANTS["ED"]) + terminal_colors.end_color)
+            print("Diameter error (ED): %g" % (CONSTANTS["ED"]) + terminal_colors["end_color"])
             execute_command("S" + str(CONSTANTS["ED"]) + "D", arduino)
 
     user_tweaks("Continue?")
@@ -435,7 +444,7 @@ def main():
         print(terminal_colors["pink"] + "Recorded pulses: %d" % (straight_pulses) + terminal_colors["end_color"])
         real_distance = float(input("Please input the traversed distance in mm: "))
         CONSTANTS["MM_TO_PULSES"] = real_distance / straight_pulses
-        print(terminal_colors.pink + "MM -> Pulses conversion factor: %g" % (CONSTANTS["MM_TO_PULSES"]))
+        print(terminal_colors["pink"] + "MM -> Pulses conversion factor: %g" % (CONSTANTS["MM_TO_PULSES"]))
         execute_command("S" + str(CONSTANTS["MM_TO_PULSES"]) + "M", arduino)
     else:
         SWITCHES["COMPUTE_STRAIGHT"] = False
