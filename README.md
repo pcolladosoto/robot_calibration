@@ -75,6 +75,12 @@ In order not to "reinvent the wheel" over and over again we have taken advantage
 
 7. `re`: This library handles everything related to regular expressions. We use them to find numbers within the strings we get back from the MCU when asking for data, so that's why we have only used the `findall()` method.
 
+8. `math`: As we are always dealing with circumferences of different radii we inevitably had to use PI. Instead of just defining it to be something like `3,14159...` we decided to go with the value provided, as it is way more exact. We also used logarithms in base 10 in order to compute the number of digits a given number (in base 10) had. We use it when "crafting" some commands so that we adhere to the syntax requirements. You can read more about it in the `initial_data()` section down below.
+
+9. `matplotlib`: We only imported [*Pyplot*](https://matplotlib.org/api/pyplot_summary.html) from this behemoth of a library so that we can represent lists as graphs along the execution of the program. This way the user can verify the integrity of the data as well as the profiles of the graphs to ensure everything is going as it should be. We make use of its methods in the `show_signal()` function. Please note that pyplot is a module (collection of related functions), not a standalone function.
+
+With all the imports out of the way lets get to know our program more in depth.
+
 ### Constants and Global Variables
 
 Before digging into the logic behind the procedure itself we should begin by looking at the series of global variables we have defined. We would also like to make a few comments on the structure this data will have.
