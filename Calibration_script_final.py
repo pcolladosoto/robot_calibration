@@ -35,7 +35,6 @@ CONSTANTS = {
     "REAL_PULSES_PER_TURN_BOTH": -1,
     "NOISE_THRESHOLD": 100,
     "WINDOW_LIMITS": 0.1,
-    "SHOW_TIME": 3
 }
 
 #Errors
@@ -69,14 +68,12 @@ SWITCHES = {
 }
 
 def IRQ_setup():
-    signal.signal(signal.SIGINT, handler)
-
-    return
+    return signal.signal(signal.SIGINT, handler)
 
 def handler():
     print(terminal_colors["red"] + "Closing on received interrupt!" + terminal_colors["end_color"])
     exit()
-    
+
 def find_N_open_serial_port():
     candidates = glob.glob('/dev/tty[A-Za-z]*')
     for path in candidates:
@@ -313,7 +310,7 @@ def show_signal(input_signal, y_label, title):
     plotter.title(title)
     plotter.plot(input_signal)
     plotter.show()
-    
+
     return
 
 def main():
@@ -411,13 +408,13 @@ def main():
     user_tweaks("Continue?")
 
     if SWITCHES["COMPUTE_L_STOPPED"]:
-        CONSTANTS["REAL_PULSES_PER_TURN_L"] = sum(L_PULSES) / len(L_PULSES)
+        CONSTANTS["REAL_PULSES_PER_TURN_L"] = int(sum(L_PULSES) / len(L_PULSES))
 
     if SWITCHES["COMPUTE_R_STOPPED"]:
-        CONSTANTS["REAL_PULSES_PER_TURN_R"] = sum(R_PULSES) / len(R_PULSES)
+        CONSTANTS["REAL_PULSES_PER_TURN_R"] = int(sum(R_PULSES) / len(R_PULSES))
 
     if SWITCHES["COMPUTE_BOTH"]:
-        CONSTANTS["REAL_PULSES_PER_TURN_BOTH"] = sum(B_PULSES) / len(B_PULSES)
+        CONSTANTS["REAL_PULSES_PER_TURN_BOTH"] = int(sum(B_PULSES) / len(B_PULSES))
 
     print(terminal_colors["cyan"] + "Computed pulses per turn:" + terminal_colors["end_color"])
     print(terminal_colors["pink"] + "\tLeft pulses: %g" % (CONSTANTS["REAL_PULSES_PER_TURN_L"]))
@@ -457,7 +454,7 @@ def main():
             CONSTANTS["WHEELBASE"] = CONSTANTS["REAL_PULSES_PER_TURN_R"] * CONSTANTS["MM_TO_PULSES"] * CONSTANTS["K"] / (2 * pi)
             print("Adjusted wheelbase: %g mm" % (CONSTANTS["WHEELBASE"]))
             execute_command("S" + str(CONSTANTS["WHEELBASE"]) + "w", arduino)
-            
+
         if SWITCHES["PHASES_12_DONE"]:
             CONSTANTS["ES"] = (CONSTANTS["DR"] / CONSTANTS["NOM_DIAMETER"]) * ((1 + CONSTANTS["ED"]) / 2)
             print("Scaling error (ES): " % (CONSTANTS["ES"]) + terminal_colors["end_color"])
