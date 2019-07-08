@@ -61,7 +61,7 @@ In each of the aforementioned sections we will break down every single function 
 
 In order not to "reinvent the wheel" over and over again we have taken advantage of several libraries to make the code faster and more legible. The functionalities they contribute to our program are:
 
-1. `glob`: This library is used to expand paths by feeding regular expressions into it as well as wildcard characters such as **&ast;** in Unix systems, for example. We use it to expand the paths to every possible device under the `/dev` directory in order to try and find the port the MCU has been assigned.
+1. `glob`: This library is used to expand paths by feeding regular expressions into it as well as wildcard characters such as **&ast;** in Unix systems, for example. We use it to expand the paths to every possible device under the `/dev` directory in order to try and find the port the MCU (Micro-Controller Unit) has been assigned.
 
 2. `serial`: Even though its name can be misleading, this is in fact the [*PySerial*](https://pythonhosted.org/pyserial/) API for handling serial communication. Please refer to the documentation to go through any chunk of code using this library.
 
@@ -167,11 +167,11 @@ As our interface is just the CLI (Command Line Interface) we have decided to use
 
 ANSI escape sequences are actually quite interesting, so we encourage you to take a look at the [*Wikipedia page*](https://en.wikipedia.org/wiki/ANSI_escape_code) covering them.
 
-### Interfacing section
+### Function breakdown
+
+#### Interfacing section
 
 The main aim of this module is opening the serial port for Arduino and getting the initial data we need as input for the calibration. We will also send the different commands to trigger the needed movements of the robot. We will finally recover the data and store it in files to be processed later on.
-
-#### Function breakdown
 
 1. `initial_data()`: We need the estimated measures of the robot as a starting point for the calibration, namely the nominal diameter (the one the wheels are supposed to have) and the wheelbase. We have also included a handful of other input data in an attempt to make the program as general as possible. These include the number of pulses the motor's encoder emits per revolution, the reducing factor between the motor and the wheels if any and the Arduino board's baud-rate. Whilst getting the data, the function updates a series of global variables containing the basic data of the robot and computes any needed secondary parameters. It will also generate the command we need to make the robot do a 360&deg; turn. All the commands, are explained in the [**Annex**](#Annex). We would like to draw attention to the part where we take the logarithm in base 10 of a number. We do so to find the number of digits in said number so that we can "craft" the command with the appropriate format. This function will also be in charge of configuring the behavior of the program based on the user's preferences. To accept a default value just press ENTER without typing anything.
 
@@ -179,11 +179,11 @@ The main aim of this module is opening the serial port for Arduino and getting t
 
 3. `find_N_open_serial_port()`: This function is the first one to use the PySerial library. It will try to open every serial port. As ports with nothing connected to them will raise a serial exception we just handle it by continuing the loop. When we open a serial port with something connected we try to check whether we have an Arduino board connected or not to the Raspberry Pi. To check all the possible ports we have used a RegExp (Regular Expresion) and then broken down the different paths with the function `glob()`. Due to the nature of serial devices it is kind of difficult to get information about the manufacturer. When dealing with a Linux-based system, attaching a serial device triggers the creation of a file in the `/dev/serial/by-id` folder. This file contains a fixed string that can be used to identify a device. By calling Linux's `ls` command on this file we can check whether an Arduino board is connected or not. The catch is that is we have several boards we cannot know for sure which port belongs to the Arduino board. When working with original Arduino boards we can just call the `dmesg` command and we will see a message containing the model of the board as well as the port where it's been attached. By parsing `dmesg`'s output we could know where our MCU is for sure. Another way of checking for a specific board would be by looking up the `VendorID` number from the `dmesg` command and query an online database for the manufacturer number and proceed just like with an original chip. We can see how this is quickly getting out of hand, so we have decided to stick with the first approach, as we are handling a very specific environment. In order to read the output of the `ls` command we call the `os` module and read its return value. We then only check whether the target string (that depends on the hardware we are connecting) is within `ls`'s output. If so, we open the serial port to our MCU. The return value of this function is the port we have opened to the Arduino.
 
-5. `execute_command([string object] command, [port object] port)`: This function is just a wrapper that sends orders to the Arduino board. After sending the command, it will remain in an idle state until it reads two dots (`.`) from the serial port. This is due to the fact that the firmware starts sending dots when it has finished carrying out the requested action. These dots are our "stop condition" after all. Again, the commands are explained in the [**Annex**](#Annex).
+4. `execute_command([string object] command, [port object] port)`: This function is just a wrapper that sends orders to the Arduino board. After sending the command, it will remain in an idle state until it reads two dots (`.`) from the serial port. This is due to the fact that the firmware starts sending dots when it has finished carrying out the requested action. These dots are our "stop condition" after all. Again, the commands are explained in the [**Annex**](#Annex).
 
-6. `get_data([port object] port)`: This functions triggers the output of data from the board and waits for the `END` string signaling that there is no more data to come. All this data will be stored on a text file for further processing. The file will be returned with the R/W pointer at the beginning.
+5. `get_data([port object] port)`: This functions triggers the output of data from the board and waits for the `END` string signaling that there is no more data to come. All this data will be stored on a text file for further processing. The file will be returned with the R/W pointer at the beginning.
 
-7. `get_straight_data([port object] port)`: This function is in charge of getting the recorded pulses when carrying out the last test. We have decided to use another function because the string format we have to read and process is not the same than it was before. It is based on regular expressions, just like the function `extract_data()`. In order to know a little bit more about its inner workings please refer to the aforementioned function down below.
+6. `get_straight_data([port object] port)`: This function is in charge of getting the recorded pulses when carrying out the last test. We have decided to use another function because the string format we have to read and process is not the same than it was before. It is based on regular expressions, just like the function `extract_data()`. In order to know a little bit more about its inner workings please refer to the aforementioned function down below.
 
 ##### Small firmware tweaks
 
@@ -193,6 +193,8 @@ We not only need to send orders to the Arduino board, but we also need to update
 
 2. `update_param(char* number, char parameter)`: Once called, we will update a parameter depending on the input argument parameter, which is just a `char`. The new value is the `float` equivalent of the number string `number`.
 
+We decided to include them here due to their strong relation with the interfacing section.
+
 #### Computations section
 
 In this section we will see how we go from having RAW text input to sanitizing it and extracting a calibrated value for each of the needed parameters. As before, we have broken down the task into several functions:
@@ -201,7 +203,7 @@ In this section we will see how we go from having RAW text input to sanitizing i
 
 2. `extract_data([python_list] string_to_parse, [python_list] p_array, [python_list] d_array)`: Using the function `findall()` from the `re` library we are able to extract the data we need and begin our process. The RegExp we are using matches ASCII digits (remember RegExps only work on text) so we need to convert them to integer values before appending them to their corresponding arrays. One might argue that we could condense these 2 first functions int one. Whilst that is absolutely true we believe this approach is more modular and improves overall code readability and clarity, something we prefer to prioritize.
 
-4. `populate_signal([python_list] pulses_array, [python_list] distances_array)`: Before understanding the way this function operates, we should take a closer look at the nature of the signals handed to us as input for this module.
+3. `populate_signal([python_list] pulses_array, [python_list] distances_array)`: Before understanding the way this function operates, we should take a closer look at the nature of the signals handed to us as input for this module.
 <br><br>
 First of all consider that in our case the encoders will emit 152,7 pulses per wheel revolution. Given that our tests were carried out by performing 8 turns and that a turn implies a fair number of wheel revolutions we are looking at a considerable quantity of pulses. Due to design constraints of the firmware, these pulses are tracked with an unsigned char whose values lies in the range [0, 255]. Let's face it, overflow is going to happen... This condition is checked by looking at the current and past number of pulses. As the number of pulses is monotonously increasing, we know that if a future index is larger than a past an overflow has taken place! In order to keep track of these overflows we have defined a variable `n_jumps`. We will add 256 to our current index for each overflow we have detected, so that the number of pulses we are using as index in our signal is in agreement with what it should be if we didn't have to cope with the char data type size constraints.
 <br><br>
@@ -211,9 +213,9 @@ when appending distance information to the array we are building we can see a co
 <br><br>
 After finishing, this function returns the real distance signal we need to process to find our parameters. We are almost there!
 
-6. `convolution_time([python_list] original_signal, [python_list] reversed_signal)`: This function returns the convolution of the inputs. As discussed in the linked article at the beginning of this document, the auto-correlation of a signal is equivalent to the convolution of the signal with itself but reversed. In math terms: X[n] &ast; X[-n] (j) = R(j), where R(j) is the autocorrelation of X[n] as a function of j and X[n] &ast; X[-n] (j) is the convolution of X[n] with itself reversed as a function of j too. Again, one could argue that functions **7** and **6** could have been joined into only one. We have taken this approach for the sake of readability.
+4. `convolution_time([python_list] original_signal, [python_list] reversed_signal)`: This function returns the convolution of the inputs. As discussed in the linked article at the beginning of this document, the auto-correlation of a signal is equivalent to the convolution of the signal with itself but reversed. In math terms: X[n] &ast; X[-n] (j) = R(j), where R(j) is the autocorrelation of X[n] as a function of j and X[n] &ast; X[-n] (j) is the convolution of X[n] with itself reversed as a function of j too. Again, one could argue that functions **7** and **6** could have been joined into only one. We have taken this approach for the sake of readability.
 
-7. `find_maximum([python_list] convoluted_signal)`: This function is more a signal processing problem than a programming one. As seen in the linked article, the profile of the auto-correlation will show clearly identifiable peaks where an entire turn has been detected. As we are interested in the number of pulses for this to happen we will be looking for the index where we find a maximum value.
+5. `find_maximum([python_list] convoluted_signal)`: This function is more a signal processing problem than a programming one. As seen in the linked article, the profile of the auto-correlation will show clearly identifiable peaks where an entire turn has been detected. As we are interested in the number of pulses for this to happen we will be looking for the index where we find a maximum value.
 <br><br>
 The catch here is that we won't be looking at the entire signal, but only at a portion of it between two limits we define: `lower_limit` and `upper_limit` in the code (no surprise!). As math assures us there will be a maximum between these we just have to look for this maximum and record the index where it takes place, which we do with a normal `for` loop. The function will return the value where we have this maximum, which directly depends on the index we found above.
 
@@ -228,6 +230,40 @@ These functions don't precisely fit into any of the two categories above, so we 
 3. `user_tweaks([string] mode)`: This function is in charge of handling the program flow. The function is called after any important section and it clears the screen whilst waiting for user input to continue. This is a way of letting the user have a tighter control on the program and not the other way around whilst clarifying the operation off the script altogether. The mode parameter has been left to enable additional functionality if required in the future.
 
 4. `show_signal([list] input_signal, [string] y_label, [string] title)`: This function is in charge of plotting any `input_signal` we feed it. The `y_label` and `title` string set those elements within the graph to give it a little bit more context. The back-end we use for plotting is `matplotlib`, even though we are not even scratching its power in our implementation.
+
+#### Program structure, the main() function
+
+Even though it's not strictly necessary, as we have a strong background in **C** we have decided to wrap the program in a `main()` function and just call it upon execution. By checking that `__name__ == "__main__"` we are taking advantage of the environment Python sets up for us. If we are executing the script directly the variable `__name__` will indeed be equal to `__main__` but if it is not executed directly the above wont hold. This lets anybody import our module in case they want to use if for any further project.
+
+Upon entering the function we will define the necessary lists for operation as well as noting that we are going to use some `GOLBAL` variables. The lists we have defined are:
+
+1. `p_array`: It will be the array holding information regarding pulses read from  the Arduino board.
+
+2. `d_array`: It is exactly the same than the one before, but it will contain the distances read by the ultrasound sensors.
+
+3. `X_PULSES`: These lists will be filled with the computed pulses in each of the tests. As we have all of them together it'll be easy to take the average of all of them when needed.
+
+After printing information regarding the program structure we will open the serial port to the MCU and ask for the initial data. The user will be able to accept the defaults here without a problem.
+
+We will then carry out each of the three tests that involve turning whilst asking for the necessary input along the way. We should note that in order to copy one list into another one cannot simply say `list_b = list_a`! When you do the above you are just creating a "list pointer" that points to the first list, `list_a` in this case. It took us a while to spot this one out...
+
+The rest of the script is a little bit easier to follow, but if you have any doubts feel free to reach me at: pcolladosoto@gmail.com.
+
+## Testing procedure
+
+After digging into the code we are now capable of talking about the procedure one has to follow to calibrate the differential robot.
+
+The first requirement is to find an open space so that the robot is around `2 m` away from any obstacle. As the reach of the ultrasound sensors is of about `1,5 m` the firmware has been prepared to treat any measurement above said sensitivity as a `0`. Thus, the robot will "think" it has a distance of `0` all around. What we have to do now is place a given obstacle (I used a cardboard box) about `20 cm` away from the robots ultrasound sensors. In order to get the best possible results it is a good idea to make the obstacle be as parallel as possible to the plan where the ultrasound sensor lies so that we get the best possible results. Otherwise, the reflection of the emitted pulse may not reach the sensor in its entirety muddying our results...
+
+What we achieve with the above is a perfectly periodic scenario, where we will see `0`s all around except when we are facing the obstacle, where we will find a sudden peak. As seen in the screenshots above this produces a crisp graph profile that's easier to handle.
+
+In between tests you may have to reposition the robot and readjust the obstacle so that it is parallel to the ultrasound sensor. Be careful not to set up a periodic scenario. This could be done by placing two similar obstacles `180º` away from each other. Then for `1` "real" lap the robot would think it has effectively made `2`!
+
+If the wheels begin slipping and the robot drifts consider looking for another surface or increasing the friction between both surfaces with tape or by putting weight on top of the slippery wheels.
+
+For the straight test you will have to measure the distance the real distance the robot has traversed. In order to do so you need a easuring taper of at least `3,5` m, as the robot will move around `3`m. The measure you have to input to the program **MUST** be in mm, so be extra careful or the calibration will be for nothing...
+
+These are some practical tips that complement the ones found in the article we referenced at the start of the document. Happy calibrating! :)
 
 ## Annex <a name="Annex"></a>
 
