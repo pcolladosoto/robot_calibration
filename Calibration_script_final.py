@@ -59,7 +59,7 @@ COMMANDS = {
 #Program switches
 SWITCHES = {
     "VERBOSE": True,
-    "DBG": False,
+    "DBG": True,
     "COMPUTE_L_STOPPED": True,
     "COMPUTE_R_STOPPED": True,
     "COMPUTE_BOTH": True,
@@ -92,9 +92,9 @@ def find_N_open_serial_port():
     print(ERROR_MESSAGES["PORT_NOT_FOUND"])
     return exit()
 
-def get_data(port):
+def get_data(port, f_name):
     port.reset_input_buffer()
-    dumped_data = open("data.txt", "w+")
+    dumped_data = open(f_name + ".txt", "w+")
     port.write(COMMANDS["GET_DATA"].encode())
 
     newline = ""
@@ -110,7 +110,7 @@ def get_straight_data(port):
     matches = findall(r"\d+", port.readline().decode())
     return int(matches[4])
 
-def execute_command(command, port):
+def execute_command(command, port, f_name = None):
     finished = 0
     str_p = 0
 
@@ -119,7 +119,7 @@ def execute_command(command, port):
 
     elif command == "Get data":
         print(terminal_colors["cyan"] + "Processing data..." + terminal_colors["end_color"])
-        return get_data(port)
+        return get_data(port, f_name)
 
     elif command == "Turn L stopped":
         port.write(COMMANDS["TURN_L_WHEEL_STOPPED"].encode())
@@ -345,7 +345,7 @@ def main():
                 continue
         p_array, d_array = [], []
         execute_command("Turn L stopped", arduino)
-        data_file = execute_command("Get data", arduino)
+        data_file = execute_command("Get data", arduino, f_name = "L_stopped_" + str(i))
         read_N_parse(data_file, p_array, d_array)
         show_signal(d_array, "Distance [cm]", "L Stopped RAW Distances")
         baked_signal = populate_signal(p_array, d_array)
@@ -369,7 +369,7 @@ def main():
                 continue
         p_array, d_array = [], []
         execute_command("Turn R stopped", arduino)
-        data_file = execute_command("Get data", arduino)
+        data_file = execute_command("Get data", arduino, f_name = "R_stopped_" + str(i))
         read_N_parse(data_file, p_array, d_array)
         show_signal(d_array, "Distance [cm]", "R Stopped RAW Distances")
         baked_signal = populate_signal(p_array, d_array)
@@ -393,7 +393,7 @@ def main():
                 continue
         p_array, d_array = [], []
         execute_command("Turn both wheels", arduino)
-        data_file = execute_command("Get data", arduino)
+        data_file = execute_command("Get data", arduino, f_name = "Both_on_" + str(i))
         read_N_parse(data_file, p_array, d_array)
         show_signal(d_array, "Distance [cm]", "Both On RAW Distances")
         baked_signal = populate_signal(p_array, d_array)
@@ -470,7 +470,7 @@ def main():
     print(terminal_colors["lime"] + "\nCalibration finished! Thanks for using our tool!" + terminal_colors["end_color"])
 
     if not SWITCHES["DBG"]:
-        os.system("rm data.txt")
+        os.system("rm *.txt")
 
     exit()
 
