@@ -1,5 +1,6 @@
 #Imports
-import glob, serial, os, sys, time, signal
+import glob, serial, os, time, signal
+#import sys
 from numpy import convolve
 from re import findall
 from math import pi, log10

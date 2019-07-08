@@ -61,7 +61,19 @@ In each of the aforementioned sections we will break down every single function 
 
 In order not to "reinvent the wheel" over and over again we have taken advantage of several libraries to make the code faster and more legible. The functionalities they contribute to our program are:
 
-1.  
+1. `glob`: This library is used to expand paths by feeding regular expressions into it as well as wildcard characters such as **&ast;** in Unix systems, for example. We use it to expand the paths to every possible device under the `/dev` directory in order to try and find the port the MCU has been assigned.
+
+2. `serial`: Even though its name can be misleading, this is in fact the [*PySerial*](https://pythonhosted.org/pyserial/) API for handling serial communication. Please refer to the documentation to go through any chunk of code using this library.
+
+3. `os`: This library lets us perform system calls from the program, such as executing commands and have them interpreted by *BASH*. We also use it to delete unused files within the program. We know this is less portable than calling Python wrappers who then fall back to system specific procedures, but we found this approach to be faster as we are guaranteed to be working in a &ast;nix system. This way we didn't get bogged down in documentation (even more!).
+
+4. `time`: As we have to interface with the MCU's firmware we have to make some delays throughout the code. I believe it to be a horrible programming practice, but as the MCU cleans the input serial buffer continuously we had no other choice but to wait to send some commands...
+
+5. `signal`: As discussed in the *Misc functions* section, we have decided to attach a handler to keyboard interrupts to handle them more gracefully. This is done by means of this library.
+
+6. `numpy`: We have only included the `convolve()` fucntion from this library. We have to use it to take the auto-correlation of the input signals and let's be honest, our own implementation of this function would have been much slower if it were t have worked in the first place ;).
+
+7. `re`: This library handles everything related to regular expressions. We use them to find numbers within the strings we get back from the MCU when asking for data, so that's why we have only used the `findall()` method.
 
 ### Constants and Global Variables
 
