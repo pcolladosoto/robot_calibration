@@ -218,6 +218,10 @@ After finishing, this function returns the real distance signal we need to proce
 5. `find_maximum([python_list] convoluted_signal)`: This function is more a signal processing problem than a programming one. As seen in the linked article, the profile of the auto-correlation will show clearly identifiable peaks where an entire turn has been detected. As we are interested in the number of pulses for this to happen we will be looking for the index where we find a maximum value.
 <br><br>
 The catch here is that we won't be looking at the entire signal, but only at a portion of it between two limits we define: `lower_limit` and `upper_limit` in the code (no surprise!). As math assures us there will be a maximum between these we just have to look for this maximum and record the index where it takes place, which we do with a normal `for` loop. The function will return the value where we have this maximum, which directly depends on the index we found above.
+<br><br>
+As the index of the correlation accounts for "how much" we have to displace the signal in order to record a maximum, we are interested in said displacement. As the length of the convoluted_signal signal is `2 · L - 1`, where `L` is the length of the original signal, we know that we will have the absolute maximum at index `(2 · L - 1) / 2` which can be seen either as `L` or `L - 1` due to the `- 1 / 2` factor we get from the expression.
+<br><br>
+Let's say we found a peak at index `j`, being `j < L`. Then, the separation between theses values is given by `L - j` and, as previously seen, this is exactly the period we are looking for: `P = L - j`. This holds true if the peak at `j` is the one closest to the absolute maximum, either to its left or to its right. We would otherwise have to normalize by the number of encountered peaks, as each peak we found states that we have displaced ourselves another full period. Then, the more general expression would end up being: `P = (L - j_n) / n`, assuming `j_n < L`. We would otherwise have `P = (j_n - L) / n` if `j_n > L`.
 
 #### Misc functions
 
@@ -285,10 +289,42 @@ The following commands are sent as plain-text through a serial port:
 
 4. `D000XXXX`: This makes the robot turn whilst maintaining the right wheel stopped. `XXXX` is the distance in centimeters the moving wheel (i.e the left one) has to traverse.
 
-5. `2XXX`: Turn with both wheels at the same speed but in opposite directions. The center of this rotation is in the middle of the middle point separating the wheels instead of in the stopped wheel. `XXX` is the angle to turn in degrees.
+5. `2XXX`: Turn with both wheels at the same speed but in opposite directions. The center of this rotation is in the middle of the imaginary line joining both wheels instead of in the stopped wheel. `XXX` is the angle to turn in degrees.
 
 6. `4XXXX`: Go straight until the robot traverses `XXXX` millimeters.
 
 ### Figures
 
-We are attaching some figures displaying the plots of both the incoming distance signals as well as their auto-correlation.
+We are attaching some figures displaying the plots of both the incoming distance signals as well as their auto-correlation and the signals we "populate". The test we carried out made the robot do **5** laps, so you'll find 5 peaks in the distance signals and 5 peaks on each side of the convoluted one. The nomenclature we have used is:
+
+* &ast; RAW Distances: The ones we read from the ultrasound sensors directly, we haven't treated the signal yet...
+* &ast; Populated Signal: After calling `populate_signal()` we end up with this graph. It's ready to be convoluted.
+* &ast; Convolution: The auto-correlation of each given signal.
+
+The &ast; is our way of saying that these three graphs have been plotted for each test:
+
+* Turning with the left wheel stopped
+* Turning with the right wheel stopped
+* Turning with both wheels in opposite directions
+
+And finally, the screenshots are (in the order above):
+
+#### Left wheel stopped
+
+![L RAW Distance](./Graphs/Test_j/L_RAW.png)
+![L Baked](./Graphs/Test_j/L_baked.png)
+![L Convoluted](./Graphs/Test_j/L_conv.png)
+
+#### Right wheel stopped
+
+![R RAW Distance](./Graphs/Test_j/R_RAW.png)
+![R Baked](./Graphs/Test_j/R_baked.png)
+![R Convoluted](./Graphs/Test_j/R_conv.png)
+
+#### Both wheels in opposite directions
+
+![Both RAW Distance](./Graphs/Test_j/Both_RAW.png)
+![Both Baked](./Graphs/Test_j/Both_baked.png)
+![Both Convoluted](./Graphs/Test_j/Both_conv.png)
+
+Please note that `Markdown` doesn't allow centering images... Sorry for the mess :grimacing:

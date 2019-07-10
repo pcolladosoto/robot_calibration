@@ -80,7 +80,7 @@ def find_N_open_serial_port():
     for path in candidates:
         try:
             port = serial.Serial(path, baudrate = CONSTANTS["ARDUINO_BAUDRATE"], timeout = None)
-            if "USB2.0-Serial-if00" in os.system("ls /dev/serial/by-id"):
+            if check_if_arduino():
                 print(terminal_colors["lime"] + "Found Arduino at port %s" % (port.name) + terminal_colors["end_color"])
                 time.sleep(1)
                 return port
@@ -91,6 +91,15 @@ def find_N_open_serial_port():
 
     print(ERROR_MESSAGES["PORT_NOT_FOUND"])
     return exit()
+
+def check_if_arduino():
+    os.system("ls /dev/serial/by-id > tmp")
+    if "USB2.0-Serial-if00" in open("tmp", "r").read():
+        os.system("rm tmp")
+        return True
+    else:
+        os.system("rm tmp")
+        return False
 
 def get_data(port, f_name):
     port.reset_input_buffer()
@@ -356,7 +365,7 @@ def main():
         show_signal(convoluted_signal, "Surface [cm * cm]", "L Stopped Convolution")
         L_PULSES.append(find_maximum(convoluted_signal, "Stopped"))
         if SWITCHES["VERBOSE"]:
-            print("Computed pulses: %g" % (L_PULSES[i]))
+            print("\tComputed pulses: %g" % (L_PULSES[i]))
 
     user_tweaks("Continue?")
 
@@ -380,7 +389,7 @@ def main():
         show_signal(convoluted_signal, "Surface [cm * cm]", "R Stopped Convolution")
         R_PULSES.append(find_maximum(convoluted_signal, "Stopped"))
         if SWITCHES["VERBOSE"]:
-            print("Computed pulses: %g" % (R_PULSES[i]))
+            print("\tComputed pulses: %g" % (R_PULSES[i]))
 
     user_tweaks("Continue?")
 
@@ -404,7 +413,7 @@ def main():
         show_signal(convoluted_signal, "Surface [cm * cm]", "Both On Convolution")
         B_PULSES.append(find_maximum(convoluted_signal, "Both"))
         if SWITCHES["VERBOSE"]:
-            print("Computed pulses: %g" % (B_PULSES[i]))
+            print("\tComputed pulses: %g" % (B_PULSES[i]))
 
     user_tweaks("Continue?")
 
@@ -422,15 +431,17 @@ def main():
     print("\tRight pulses: %g" % (CONSTANTS["REAL_PULSES_PER_TURN_R"]))
     print("\tBoth pulses: %g" % (CONSTANTS["REAL_PULSES_PER_TURN_BOTH"]))
 
+    print(terminal_colors["cyan"] + "K and ED values:" + terminal_colors["end_color"])
+
     if SWITCHES["COMPUTE_R_STOPPED"]:
         if SWITCHES["COMPUTE_BOTH"]:
             SWITCHES["PHASES_23_DONE"] = True
             CONSTANTS["K"] = 2 * CONSTANTS["REAL_PULSES_PER_TURN_BOTH"] / CONSTANTS["REAL_PULSES_PER_TURN_R"]
-            print("K value: %g" % (CONSTANTS["K"]))
+            print("\tK value: %g" % (CONSTANTS["K"]))
         if SWITCHES["COMPUTE_L_STOPPED"]:
             SWITCHES["PHASES_12_DONE"] = True
             CONSTANTS["ED"] = CONSTANTS["REAL_PULSES_PER_TURN_R"] / CONSTANTS["REAL_PULSES_PER_TURN_L"]
-            print("Diameter error (ED): %g" % (CONSTANTS["ED"]) + terminal_colors["end_color"])
+            print("\tDiameter error (ED): %g" % (CONSTANTS["ED"]) + terminal_colors["end_color"])
             execute_command("S" + str(CONSTANTS["ED"]) + "D", arduino)
 
     user_tweaks("Continue?")
@@ -465,7 +476,7 @@ def main():
     user_input = input("Would you like a final summary of the computed data? (Y/n) -> ")
     if user_input == "Y":
         for key, value in CONSTANTS.items():
-            print ("Constant: %s has a value of %g " % (key, value))
+            print ("Constant: %s " % (key) + terminal_colors["cyan"] + "has a value of %g " % (value) + terminal_colors["end_color"])
 
     print(terminal_colors["lime"] + "\nCalibration finished! Thanks for using our tool!" + terminal_colors["end_color"])
 
