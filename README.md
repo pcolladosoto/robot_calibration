@@ -253,7 +253,7 @@ We will then carry out each of the three tests that involve turning whilst askin
 
 The rest of the script is a little bit easier to follow, but if you have any doubts feel free to reach me at: pcolladosoto@gmail.com.
 
-## Testing procedure
+## Calibration procedure
 
 After digging into the code we are now capable of talking about the procedure one has to follow to calibrate the differential robot.
 
@@ -268,6 +268,18 @@ If the wheels begin slipping and the robot drifts consider looking for another s
 For the straight test you will have to measure the distance the real distance the robot has traversed. In order to do so you need a easuring taper of at least `3,5` m, as the robot will move around `3`m. The measure you have to input to the program **MUST** be in mm, so be extra careful or the calibration will be for nothing...
 
 These are some practical tips that complement the ones found in the article we referenced at the start of the document. Happy calibrating! :)
+
+## Testing procedure
+
+In order to test the newly calibrated robot we decided to go for what we call the 3-&pi;-3 procedure. As the name implies, what we are doing is ordering the robot to advance 3 meters, make a 180 degree turn (&pi; radians) and then traverse another 3 meters. In a wonderfully perfect world we would see how the position of the robot would be the same.
+
+Actually, saying the position of the robot will be the same is kind of vague... We need to define a suitable reference! In order to do so, we taped a thin piece of paper to the back of the robot so that it touched the floor. Now, the robot's firmware has been written so that the reference of the robot is the middle point of its wheelbase. Remember that the wheelbase is the distance between both wheel's point of contact with the ground. Measuring our specific platform shows that the distance from said center to the point where we taped our piece of paper is 30 mm.
+
+Taking into account that the **center** of the wheelbase should be the one ending up in the initial position it had, we can see how we need to get some math out of the way to get the exact deviations. As we will be throwing the word *reference* quite often from now on it would be a good idea to get some nomenclature out of the way. We'll refer to the paper tape as the measurement reference, as it is the one we used in our tests and to the center of the wheelbase as the robot's reference. Note how the following computations take the measurements reference as their reference (see how we were going to say reference a lot? :laughing:)
+
+We define the robot's initial reference as R_o and it has an initial value of (30, 0). After the robot has carried out the 3-&pi;-3 test the tape will have a position T_f = (X, Y). Now, the center will be 30 mm closer to the origin due to the 30 mm separation between the tape and the robot's center, so the final position of the robot's reference will be R_f = (X - 30, Y). Note that, as both references lie on the same line we don't have to "adjust" the Y component. Then, the displacement of the robot's reference becomes R_f - R_o = (X - 60, Y).
+
+Finally, take into account that if the orientation of the robot is not 0 or &pi; radians we will have to take into account the heading's deviation to compute the error we have in both components... That could get kind of tricky, but as the measurements are quite small we can get away with being a little bit lazy :grin:
 
 ## Annex <a name="Annex"></a>
 
