@@ -68,11 +68,11 @@ float X = 0, Y = 0, Theta = 0;
 
   //Current_pulses and last_pulses for PID calibration
   float WHEEL_DIST = 535;         //UAH 578; //UMB          //575;      // Wheel distance in mm
-  float mmperpulse = 1.68;        // mm per pulse in the encoders
-  #define INERTIA_LIMIT  1        // Inertia limit to stop few pulses before the limit
-  #define PID_TIME        500     // Time in miliseconds for each iteration of the PID
-  #define BREAK_PULSES   1        // Number of pulses from the end to start breaking
-  #define IGNORE_PULSE   11000    // time in micros to ignore encoder pulses if faster
+  float mmperpulse = 1.68;         // mm per pulse in the encoders
+  #define INERTIA_LIMIT  1            // Inertia limit to stop few pulses before the limit
+  #define PID_TIME       500          // Time in miliseconds for each iteration of the PID
+  #define BREAK_PULSES   1            // Number of pulses from the end to start breaking
+  #define IGNORE_PULSE   11000        // time in micros to ignore encoder pulses if faster
   #define PID_PULSES 10
 
   // PID (PD) constants
@@ -296,7 +296,7 @@ void move_motors() {
 
   else {
     inhib_r |= 0x44;
-    analogWrite(MOT_R_PWM_PIN, velr)
+    analogWrite(MOT_R_PWM_PIN, velr);
   }
 
   if (!vell)
@@ -304,7 +304,7 @@ void move_motors() {
 
   else {
     inhib_l |= 0x11;
-    analogWrite(MOT_L_PWM_PIN, vell)
+    analogWrite(MOT_L_PWM_PIN, vell);
   }  
 
   if (dir_right && dir_left)
@@ -611,13 +611,13 @@ void dep() {
 //                      READ_NUMBER                          //
 //  Read a number from the serial port with <number> digits  //
 ///////////////////////////////////////////////////////////////
-short int read_number(int number) {
+short int read_number(int n_digits) {
   char speed[5];
 
   // Wait to be sure the bytes have arrived
   delay(5);
 
-  if (Serial.available() > number- 1) {
+  if (Serial.available() > n_digits- 1) {
     Serial.readBytes(speed, n_digits);
     speed[n_digits] = '\0';  // Append a NULL character to terminate the string! Not needed if initialized with char speed[5] = {0}...
     return (unsigned int) atoi(speed);
@@ -640,7 +640,7 @@ void parse_input(void) {
     if (incoming_byte <= '9' || incoming_byte == '.')
       incoming_number[i++] = incoming_byte;
     else {
-      if (i > 0)
+      if (i >= 0)
         update_param(incoming_number, incoming_byte);
       i = 0;
       for (int k = 0; k < N_DIGS; k++)
@@ -682,6 +682,17 @@ void update_param(char* number, char parameter) {
       Serial.print("The parameter we are updating is: ");
       Serial.print("Correction factor");
       Serial.print(" with a value of: ");
+      Serial.println(c_factor);
+      break;
+    case 'S':
+      Serial.println("Paramenter values: ");
+      Serial.print("\tWheelbase: ");
+      Serial.println(WHEEL_DIST, 10);
+      Serial.print("\tMM per pulse: ");
+      Serial.println(mmperpulse, 10);
+      Serial.print("\tKKI: ");
+      Serial.println(KKI, 10);
+      Serial.print("\tC Factor: ");
       Serial.println(c_factor);
       break;
     default:
@@ -881,7 +892,7 @@ void analyze_order() {
     // Bumping and falling Sensors status
     case 0x39: // '9'
       for (int k = 0; k < 6; k++)
-        str[i] = '1';
+        str[k] = '1';
       str[6] = '\0';
       Serial.print("Sensors :");
       Serial.println(str);
@@ -1010,7 +1021,7 @@ void loop() {
 
     // Clean the buffer
     while(Serial.available())
-      Serial.readBytes(aux, 1);
+      Serial.readBytes(&aux, 1);
   }
 
   // Each state performs a different movement

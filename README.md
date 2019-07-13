@@ -281,6 +281,54 @@ We define the robot's initial reference as R_o and it has an initial value of (3
 
 Finally, take into account that if the orientation of the robot is not 0 or &pi; radians we will have to take into account the heading's deviation to compute the error we have in both components... That could get kind of tricky, but as the measurements are quite small we can get away with being a little bit lazy :grin:
 
+## Test results
+
+We will attach the raw results we obtained when carrying out the tests to verify the calibration. We will then take into account the correction factor for the `X` coordinate so that the results are comparable to the ones shown in the cited article. We carried out 5 tests per configuration because we didn't observe a lot of variability. These 5 tests give a good enough sample then. We are attaching said data below.
+
+### Raw data with a calibrated Firmware
+
+|        | Real X | Real Y | Internal X | Internal Y |
+| ------ | ------ | ------ | ---------- | ---------- |
+| Test A |  150   |  150   |     60     |    121     |
+| Test B |  220   |  475   |     84     |    376     |
+| Test C |  144   |  334   |     13     |    247     |
+| Test D |  180   |  645   |     40     |    653     |
+| Test E |  180   |  580   |     40     |    542     |
+
+### Raw data with a non-calibrated Firmware
+
+|        | Real X | Real Y | Internal X | Internal Y |
+| ------ | ------ | ------ | ---------- | ---------- |
+| Test A |  145   |  390   |     37     |    455     |
+| Test B |  155   |  420   |     39     |    515     |
+| Test C |  119   |  335   |     18     |    406     |
+| Test D |  105   |  234   |     -8     |    348     |
+| Test E |  115   |  295   |     -3     |    353     |
+
+### "Processing" the data
+
+As discussed above we need to "treat" the data by correcting the `X` coordinate. We have taken this approach just in case the correction has a misconception... This still shows the measured data so that it can be treated correctly in that case. We have also computed the error between the real measured data and the one the robot believes it has internally. We have opted to compute this error as `Error_N = Internal_N - Real_N`. Said data is given below.
+
+#### Processed data with a calibrated Firmware
+
+|        | Real X | Real Y | Internal X | Internal Y | X Error | Y Error |
+| ------ | ------ | ------ | ---------- | ---------- | ------- | ------- |
+| Test A |  90    |  150   |     60     |    121     |  -30    |  -29    |
+| Test B |  160   |  475   |     84     |    376     |  -76    |  -99    |
+| Test C |  84    |  334   |     13     |    247     |  -71    |  -87    |
+| Test D |  120   |  645   |     40     |    653     |  -80    |  8      |
+| Test E |  120   |  580   |     40     |    542     |  -80    |  -38    |
+
+#### Processed data with a non-calibrated Firmware
+
+|        | Real X | Real Y | Internal X | Internal Y | X Error | Y Error |
+| ------ | ------ | ------ | ---------- | ---------- | ------- | ------- |
+| Test A |  85    |  390   |     37     |    455     |  -48    |  65     |
+| Test B |  95    |  420   |     39     |    515     |  -56    |  95     |
+| Test C |  59    |  335   |     18     |    406     |  -41    |  71     |
+| Test D |  45    |  234   |     -8     |    348     |  -53    |  114    |
+| Test E |  55    |  295   |     -3     |    353     |  -58    |  58     |
+
 ## Annex <a name="Annex"></a>
 
 ### Commands for interfacing with Arduino's Firmware
