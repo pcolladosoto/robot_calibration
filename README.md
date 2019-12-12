@@ -325,20 +325,15 @@ We will attach the raw results we obtained when carrying out the tests to verify
 
 Please note that the parameter values we have used for the procedure are given in the table below:
 
-<p align="center">
-
 |                         | KKI (ED) | MM -> Pulses (mmperpulse) | Wheelbase (WHEELDIST) [mm] |
 | ----------------------- | -------- | ------------------------- | -------------------------- |
 |   Calibrated Firmware   |  0.9985  |         1.67941           |         540.183            |
 | Non-calibrated Firmware |    1     |          1.68             |           535              |
 
-</p>
-
 These were obtained after carrying out the procedure described in the referenced article using our own script in the process.
 
 
 ### Raw data with a calibrated Firmware
-<p align="center">
 
 |        | Real X | Real Y | Internal X | Internal Y |
 | ------ | ------ | ------ | ---------- | ---------- |
@@ -347,8 +342,6 @@ These were obtained after carrying out the procedure described in the referenced
 | Test C |  144   |  334   |     13     |    247     |
 | Test D |  180   |  645   |     40     |    653     |
 | Test E |  180   |  580   |     40     |    542     |
-
-</p>
 
 ### Raw data with a non-calibrated Firmware
 
