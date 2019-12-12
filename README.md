@@ -339,6 +339,7 @@ These were obtained after carrying out the procedure described in the referenced
 
 ### Raw data with a calibrated Firmware
 <p align="center">
+
 |        | Real X | Real Y | Internal X | Internal Y |
 | ------ | ------ | ------ | ---------- | ---------- |
 | Test A |  150   |  150   |     60     |    121     |
@@ -346,7 +347,9 @@ These were obtained after carrying out the procedure described in the referenced
 | Test C |  144   |  334   |     13     |    247     |
 | Test D |  180   |  645   |     40     |    653     |
 | Test E |  180   |  580   |     40     |    542     |
+
 </p>
+
 ### Raw data with a non-calibrated Firmware
 
 |        | Real X | Real Y | Internal X | Internal Y |
