@@ -36,6 +36,8 @@ CONSTANTS = {
     "REAL_PULSES_PER_TURN_BOTH": -1,
     "NOISE_THRESHOLD": 100,
     "WINDOW_LIMITS": 0.1,
+    "STOP_CHAR": "B0",
+    "ARDUINO_ID_STRING": "usb-1a86_USB2.0-Serial-if00-port0"
 }
 
 #Errors
@@ -47,6 +49,7 @@ ERROR_MESSAGES = {
 #Commands
 COMMANDS = {
     "GET_DATA": 'F',
+    "GET_STRAIGHT_DATA": 'Q',
     "TURN_L_WHEEL_STOPPED": 'C0002689',
     "TURN_R_WHEEL_STOPPED": 'D0002689',
     "TURN_BOTH_WHEELS": '3360',
@@ -94,7 +97,7 @@ def find_N_open_serial_port():
 
 def check_if_arduino():
     os.system("ls /dev/serial/by-id > tmp")
-    if "USB2.0-Serial-if00" in open("tmp", "r").read():
+    if CONSTANTS["ARDUINO_ID_STRING"] in open("tmp", "r").read():
         os.system("rm tmp")
         return True
     else:
@@ -115,13 +118,19 @@ def get_data(port, f_name):
     return dumped_data
 
 def get_straight_data(port):
-
-    matches = findall(r"\d+", port.readline().decode())
-    return int(matches[4])
+    st = ""
+    while "Q" not in st:
+         st = port.readline().decode()  
+    matches = findall(r"\d+", st)
+    if (int(int(matches[0]) - int(matches[1])) <= 30):
+        return int((int(matches[0]) + int(matches[1]) / 2))
+    else:
+        print(terminal_colors["red"] + "Repeat the measurement!" + terminal_colors["end"])
+        return -1
 
 def execute_command(command, port, f_name = None):
     finished = 0
-    str_p = 0
+    str_p = -1
 
     if command[0] == "S":
         port.write(command.encode())
@@ -145,7 +154,6 @@ def execute_command(command, port, f_name = None):
     elif command == "Advance 3 m":
         port.write(COMMANDS["GO_STRAIGHT_3M"].encode())
         port.reset_input_buffer()
-        str_p = get_straight_data(port)
 
     elif command == "A":
         port.write(COMMANDS["TURN_L_LITTLE"].encode())
@@ -153,15 +161,23 @@ def execute_command(command, port, f_name = None):
     elif command == "D":
         port.write(COMMANDS["TURN_R_LITTLE"].encode())
 
+    elif command == "Get straight data":
+        port.reset_input_buffer()
+        time.sleep(1)
+        port.reset_input_buffer()
+        port.write(COMMANDS["GET_STRAIGHT_DATA"].encode())
+        str_p = get_straight_data(port)
+
     else:
         return
 
     while True:
-        char = port.read().decode()
-        if char == ".":
+        port.reset_input_buffer()
+        char = port.read(len(CONSTANTS["STOP_CHAR"])).decode()
+        if char == CONSTANTS["STOP_CHAR"]:
             finished += 1
             if finished == 2:
-                return str_p
+              return str_p
 
 def initial_data(port):
 
@@ -325,6 +341,7 @@ def show_signal(input_signal, y_label, title):
 
 def main():
     global CONSTANTS
+    loop_flag = True
 
     p_array, d_array, L_PULSES, R_PULSES, B_PULSES = [], [], [], [], []
 
@@ -356,13 +373,13 @@ def main():
         execute_command("Turn L stopped", arduino)
         data_file = execute_command("Get data", arduino, f_name = "L_stopped_" + str(i))
         read_N_parse(data_file, p_array, d_array)
-        show_signal(d_array, "Distance [cm]", "L Stopped RAW Distances")
+        # show_signal(d_array, "Distance [cm]", "L Stopped RAW Distances")
         baked_signal = populate_signal(p_array, d_array)
-        show_signal(baked_signal, "Distance [cm]", "L Stopped Populated Signal")
+        # show_signal(baked_signal, "Distance [cm]", "L Stopped Populated Signal")
         og_signal = baked_signal.copy()
         baked_signal.reverse()
         convoluted_signal = convolution_time(og_signal, baked_signal)
-        show_signal(convoluted_signal, "Surface [cm * cm]", "L Stopped Convolution")
+        # show_signal(convoluted_signal, "Surface [cm * cm]", "L Stopped Convolution")
         L_PULSES.append(find_maximum(convoluted_signal, "Stopped"))
         if SWITCHES["VERBOSE"]:
             print("\tComputed pulses: %g" % (L_PULSES[i]))
@@ -380,13 +397,13 @@ def main():
         execute_command("Turn R stopped", arduino)
         data_file = execute_command("Get data", arduino, f_name = "R_stopped_" + str(i))
         read_N_parse(data_file, p_array, d_array)
-        show_signal(d_array, "Distance [cm]", "R Stopped RAW Distances")
+        # show_signal(d_array, "Distance [cm]", "R Stopped RAW Distances")
         baked_signal = populate_signal(p_array, d_array)
-        show_signal(baked_signal, "Distance [cm]", "R Stopped Populated Signal")
+        # show_signal(baked_signal, "Distance [cm]", "R Stopped Populated Signal")
         og_signal = baked_signal.copy()
         baked_signal.reverse()
         convoluted_signal = convolution_time(og_signal, baked_signal)
-        show_signal(convoluted_signal, "Surface [cm * cm]", "R Stopped Convolution")
+        # show_signal(convoluted_signal, "Surface [cm * cm]", "R Stopped Convolution")
         R_PULSES.append(find_maximum(convoluted_signal, "Stopped"))
         if SWITCHES["VERBOSE"]:
             print("\tComputed pulses: %g" % (R_PULSES[i]))
@@ -404,13 +421,13 @@ def main():
         execute_command("Turn both wheels", arduino)
         data_file = execute_command("Get data", arduino, f_name = "Both_on_" + str(i))
         read_N_parse(data_file, p_array, d_array)
-        show_signal(d_array, "Distance [cm]", "Both On RAW Distances")
+        # show_signal(d_array, "Distance [cm]", "Both On RAW Distances")
         baked_signal = populate_signal(p_array, d_array)
-        show_signal(baked_signal, "Distance [cm]", "Both On Populated Signal")
+        # show_signal(baked_signal, "Distance [cm]", "Both On Populated Signal")
         og_signal = baked_signal.copy()
         baked_signal.reverse()
         convoluted_signal = convolution_time(og_signal, baked_signal)
-        show_signal(convoluted_signal, "Surface [cm * cm]", "Both On Convolution")
+        # show_signal(convoluted_signal, "Surface [cm * cm]", "Both On Convolution")
         B_PULSES.append(find_maximum(convoluted_signal, "Both"))
         if SWITCHES["VERBOSE"]:
             print("\tComputed pulses: %g" % (B_PULSES[i]))
@@ -449,12 +466,18 @@ def main():
     print(terminal_colors["lime"] + "Beginning phase 4: Going straight for 3 meters" + terminal_colors["end_color"])
 
     if input("Input S to skip the test: ") != "S":
-        straight_pulses = execute_command("Advance 3 m", arduino)
-        print(terminal_colors["pink"] + "Recorded pulses: %d" % (straight_pulses) + terminal_colors["end_color"])
-        real_distance = float(input("Please input the traversed distance in mm: "))
-        CONSTANTS["MM_TO_PULSES"] = real_distance / straight_pulses
-        print(terminal_colors["pink"] + "MM -> Pulses conversion factor: %g" % (CONSTANTS["MM_TO_PULSES"]))
-        execute_command("S" + str(CONSTANTS["MM_TO_PULSES"]) + "M", arduino)
+        while loop_flag:
+            execute_command("Advance 3 m", arduino)
+            straight_pulses = execute_command("Get straight data", arduino)
+            if straight_pulses != -1:
+                loop_flag = False
+            else:
+                continue
+            print(terminal_colors["pink"] + "Recorded pulses: %d" % (straight_pulses) + terminal_colors["end_color"])
+            real_distance = float(input("Please input the traversed distance in mm: "))
+            CONSTANTS["MM_TO_PULSES"] = real_distance / straight_pulses
+            print(terminal_colors["pink"] + "MM -> Pulses conversion factor: %g" % (CONSTANTS["MM_TO_PULSES"]))
+            execute_command("S" + str(CONSTANTS["MM_TO_PULSES"]) + "M", arduino)
     else:
         SWITCHES["COMPUTE_STRAIGHT"] = False
 

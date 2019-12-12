@@ -6,6 +6,34 @@ This software has been written as part of the **Padrino Tecnológico** initiativ
 
 The theory behind the methods we propose can be found over at [**Hindawi's Journal of Sensors**](https://www.hindawi.com/journals/js/2019/8269256/?utm_medium=author&utm_source=Hindawi).
 
+## Dependencies
+
+In order to use the program you'll need to install several dependencies. It may vary from system to system so we encourage you to read through any dependency-related issue that may arise to solve it. Either way, with what we'll install here you should be good to go.
+
+Please note that as we need to access serial ports living under `/dev` we'll need to run the program with super-user privileges (i.e prepending `sudo`). One could argue that we might add the user who's going to run the script to the group of the appropriate serial-port file and that would indeed be a more elegant solution. In case you wan't to look into it run `ls -l /dev` to find the group of the specific file and then execute `sudo usermod -a -G <file's group> <username>`. Please check that the group has **R/W** permissions on said file as we need to both read **AND** write data to the port.
+
+For a "quick and dirty" solution just run the script with super-user privileges by executing `sudo python3 <Script_name.py>`. This has implications on the way we install dependencies. We will go ahead and use Python's package manager `pip3`. Please bear in mind that this script has been written with **Python3** in mind so be careful when using tools such as `pip` as they may be running `pip2` or `pip3` under the hood depending on your system configuration... If we are following the "quick" route we will need to execute `sudo pip3 install <module_name>` when installing packages. Just a note, if `pip3` isn't installed run `sudo apt install python3-pip` to get it. If on the other hand we are configuring the appropriate permissions for the device file we'll be okay just running `pip3 install <module_name>`.
+
+The modules you'll likely need to install are:
+
+* **pyserial**: `sudo pip3 install pyserial`
+* **numpy**: `sudo pip3 install numpy`
+* **matplotlib**: `sudo pip3 install matplotlib`
+
+We are now ready to discuss how to operate the program and get that calibration done!
+
+## Quick Start Guide
+
+Once all the dependencies are installed place yourself in the folder containg the file `Calibration_script_final.py` and run `sudo pyhton3 Calibration_script_final.py`. In case you decided to configure file permissions appropriately you can just run `pyhton3 Calibration_script_final.py`. Th program will autodetect the Arduino board and it'll also guide you throughout the entire process so there should be any problem.
+
+In case you want to see the signal vectors we build to get the required data you need to manually uncomment the calls to `show_signal()` within `main()` you will find on lines `376`, `378`, `382`, `400`, `402`, `406`, `424`, `426` and `430`. Note that these calls are blocking in the sense that you must close the windows manually to resume operation.
+
+Whenerver you are presented with a choice you will nee to use an **UPPER CASE** letter to accept, just like in `apt` as a negative answer is usually "safer". This has been our design choice.
+
+The program may generate a number of `.txt` file if not instructed to delete them. We used them to check whether the way we treated our data was coherent with a Matlab version whose operation had been tested. You can delete them without worries if the program doesn't automatically delete them.
+
+We have included some system calls relying on UNIX commands so if you inted to run the script on a Windows platform you'll need to adjust these... The commands are given as a parameter to `os.system()` so that you can find them more easily.
+
 ## Rough Theoretical Summary
 
 The main approach for differential robot location has traditionally been odometry. As we "know" the diameter of our wheels and the number of revolutions they turn we can theoretically compute the linear displacement of the robot as well as the final direction it's heading. The "bad thing" is that our errors will be cumulative, meaning that after a few meters our estimation of the position will be practically worthless.
@@ -57,7 +85,7 @@ We finally find the ***Miscellaneous section*** where we have additional functio
 
 In each of the aforementioned sections we will break down every single function so that the make the overall process be as clear as we possibly can. Let's get to work, shall we?
 
-### Used libraries
+### Used libraries <a name=Imports></a>
 
 In order not to "reinvent the wheel" over and over again we have taken advantage of several libraries to make the code faster and more legible. The functionalities they contribute to our program are:
 
@@ -122,6 +150,10 @@ All these values can be found in the `CONSTANTS` dictionary, where the value of 
 13. `NOISE_THRESHOLD`: During our experiments we have observed how the ultrasound sensors aren't immune to noise. Having an approximate measuring range of 1,5 meters, we saw how the gave back measurements in the [1,6; 1,7] m range. As these are **NOT** real measure we decided to filter them out by imposing a necessary minimum value when building our signal. Said requirement is controlled by means of this constant.
 
 14. `WINDOW_LIMITS`: When looking for a maximum in our signal we are not dealing with the entire signal, which can become quite large. We only consider values within a certain window instead. As we know what the expected result should look like (as recorded in the `ESTIMATED_PULSES_PER_TURN` constant), we can be pretty sure the real value will be found within a range containing our expected result.
+
+15. `STOP_CHAR`: This is the character sent by the robot when in an idle state. We use it to determine when the execution of a command finishes so that we can time data retrieval and processing accordingly. When we need the length of saif stop character we have used the `len()` so that changing this string "just works".
+
+16. `ARDUINO_ID_STRING`: In order to detect whether the plugged in serial device is an Arduino board or not we rely on a file created under `/dev/serial/by-id` when we open the corresponding serial port. This ID is board dependent so you'll need to adjust it based on your own board. It's been updated to work with the current platform as of 11/12/19. To find your ID just run `ls /dev/serial/by-id`. This behavior has been implemented to allow for an easier automatic detection in the presence of serveral serial devices but has not been thoriughly tested so in case you experience any errors just substitute the call to `check_if_arduino()` on line `86` to `True` and change the `path` on line `85` by a hardcoded string containing the path to the serial device file like `/dev/ttyUSB0` for instance.
 
 #### Commands
 
