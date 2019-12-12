@@ -173,6 +173,12 @@ They can be found within the `COMMANDS` dictionary. As with the `CONSTANTS` one,
 
 6. `GO_STRAIGHT_1M = '41000'` (used for debugging)
 
+7. `TURN_L_LITTLE = '2020'` (used for debugging)
+
+8. `TURN_R_LITTLE = '3020'` (used for debugging)
+
+9. `GET_STRAIGHT_DATA = 'Q'`
+
 For a discussion on the syntax please refer to the [**Annex**](#Annex).
 
 #### Error Constants

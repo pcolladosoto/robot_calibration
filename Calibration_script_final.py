@@ -49,14 +49,14 @@ ERROR_MESSAGES = {
 #Commands
 COMMANDS = {
     "GET_DATA": 'F',
-    "GET_STRAIGHT_DATA": 'Q',
     "TURN_L_WHEEL_STOPPED": 'C0002689',
     "TURN_R_WHEEL_STOPPED": 'D0002689',
     "TURN_BOTH_WHEELS": '3360',
     "GO_STRAIGHT_3M": '63000220',
     "GO_STRAIGHT_1M": '41000',
     "TURN_L_LITTLE": '2020',
-    "TURN_R_LITTLE": '3020'
+    "TURN_R_LITTLE": '3020',
+    "GET_STRAIGHT_DATA": 'Q'
 }
 
 #Program switches
