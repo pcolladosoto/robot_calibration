@@ -419,6 +419,17 @@ And finally, the screenshots are (in the order above):
 
 #### Left wheel stopped
 
+<p align="center">
+  <img src="./Graphs/Test_j/L_RAW.png">
+</p>
+
+<p align="center">
+  <img src="./Graphs/Test_j/L_baked.png">
+</p>
+
+<p align="center">
+  <img src="./Graphs/Test_j/L_conv.png">
+</p>
 ![L RAW Distance](./Graphs/Test_j/L_RAW.png)
 ![L Baked](./Graphs/Test_j/L_baked.png)
 ![L Convoluted](./Graphs/Test_j/L_conv.png)
