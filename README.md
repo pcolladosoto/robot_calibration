@@ -275,7 +275,7 @@ These functions don't precisely fit into any of the two categories above, so we 
 
 #### Program structure, the main() function
 
-Even though it's not strictly necessary, as we have a strong background in **C** we have decided to wrap the program in a `main()` function and just call it upon execution. By checking that `__name__ == "__main__"` we are taking advantage of the environment Python sets up for us. If we are executing the script directly the variable `__name__` will indeed be equal to `__main__` but if it is not executed directly the above wont hold. This lets anybody import our module in case they want to use if for any further project.
+Even though it's not strictly necessary, as we have a strong background in **C** we have decided to wrap the program in a `main()` function and just call it upon execution. By checking that `__name__ == "__main__"` we are taking advantage of the environment Python sets up for us. If we are executing the script directly the variable `__name__` will indeed be equal to `__main__` but if it is not executed directly the above won't hold. This lets anybody import our module in case they want to use if for any further project.
 
 Upon entering the function we will define the necessary lists for operation as well as noting that we are going to use some `GOLBAL` variables. The lists we have defined are:
 
@@ -325,10 +325,14 @@ We will attach the raw results we obtained when carrying out the tests to verify
 
 Please note that the parameter values we have used for the procedure are given in the table below:
 
+<p align="center">
+
 |                         | KKI (ED) | MM -> Pulses (mmperpulse) | Wheelbase (WHEELDIST) [mm] |
 | ----------------------- | -------- | ------------------------- | -------------------------- |
 |   Calibrated Firmware   |  0.9985  |         1.67941           |         540.183            |
 | Non-calibrated Firmware |    1     |          1.68             |           535              |
+
+</p>
 
 These were obtained after carrying out the procedure described in the referenced article using our own script in the process.
 
@@ -430,20 +434,49 @@ And finally, the screenshots are (in the order above):
 <p align="center">
   <img src="./Graphs/Test_j/L_conv.png">
 </p>
+
+<!--
 ![L RAW Distance](./Graphs/Test_j/L_RAW.png)
 ![L Baked](./Graphs/Test_j/L_baked.png)
 ![L Convoluted](./Graphs/Test_j/L_conv.png)
+-->
 
 #### Right wheel stopped
 
+<p align="center">
+  <img src="./Graphs/Test_j/R_RAW.png">
+</p>
+
+<p align="center">
+  <img src="./Graphs/Test_j/R_baked.png">
+</p>
+
+<p align="center">
+  <img src="./Graphs/Test_j/R_conv.png">
+</p>
+
+<!--
 ![R RAW Distance](./Graphs/Test_j/R_RAW.png)
 ![R Baked](./Graphs/Test_j/R_baked.png)
 ![R Convoluted](./Graphs/Test_j/R_conv.png)
+-->
 
 #### Both wheels in opposite directions
 
+<p align="center">
+  <img src="./Graphs/Test_j/Both_RAW.png">
+</p>
+
+<p align="center">
+  <img src="./Graphs/Test_j/Both_baked.png">
+</p>
+
+<p align="center">
+  <img src="./Graphs/Test_j/Both_conv.png">
+</p>
+
+<!--
 ![Both RAW Distance](./Graphs/Test_j/Both_RAW.png)
 ![Both Baked](./Graphs/Test_j/Both_baked.png)
 ![Both Convoluted](./Graphs/Test_j/Both_conv.png)
-
-Please note that `Markdown` doesn't allow centering images... Sorry for the mess :grimacing:
+-->
